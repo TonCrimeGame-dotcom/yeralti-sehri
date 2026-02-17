@@ -1,107 +1,169 @@
 <!DOCTYPE html>
 <html lang="tr">
 <head>
-<meta charset="UTF-8">
-<title>Yeraltı Şehri</title>
-<script src="https://telegram.org/js/telegram-web-app.js"></script>
-<style>
-body{background:#0e0e0e;color:#fff;font-family:Arial;margin:0;padding:20px}
-h1{margin-top:0}
-.btn{background:#1c1c1c;padding:16px;margin:10px 0;border-radius:10px;text-align:center;font-size:18px}
-.btn:active{background:#333}
-.lock{opacity:.4}
-.back{text-align:center;margin-top:20px;color:#aaa}
-.hidden{display:none}
-</style>
+  <meta charset="UTF-8" />
+  <title>Yeraltı Şehri</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+
+  <script src="https://unpkg.com/@supabase/supabase-js@2"></script>
+
+  <style>
+    body {
+      background:#0b0b0b;
+      color:#fff;
+      font-family:Arial, sans-serif;
+      margin:0;
+      padding:20px;
+    }
+    h1 { text-align:center; }
+    button {
+      width:100%;
+      padding:14px;
+      margin:8px 0;
+      background:#1e1e1e;
+      color:#fff;
+      border:none;
+      border-radius:6px;
+      font-size:16px;
+    }
+    button:hover { background:#333; }
+    .box {
+      background:#151515;
+      padding:15px;
+      border-radius:8px;
+      margin-bottom:15px;
+    }
+    .hidden { display:none; }
+    .success { color:#4caf50; }
+    .error { color:#f44336; }
+  </style>
 </head>
 
 <body>
 
-<!-- KARAKTER SEÇİMİ -->
-<div id="character">
-  <h1>🧬 Karakter Seç</h1>
-  <div class="btn" onclick="selectChar('Yakışıklı Hırsız')">😎 Yakışıklı Hırsız</div>
-  <div class="btn" onclick="selectChar('Sert Adam')">💪 Sert Adam</div>
-  <div class="btn" onclick="selectChar('Sexy Hırsız')">🔥 Sexy Hırsız</div>
-  <div class="btn" onclick="selectChar('Sert Kadın')">🩸 Sert Kadın</div>
+<h1>🔥 Yeraltı Şehri</h1>
+
+<div class="box" id="playerInfo">
+  Yükleniyor...
 </div>
 
-<!-- ANA MENÜ -->
-<div id="menu" class="hidden">
-  <h1>🩸 Yeraltı Şehri</h1>
-  <div class="btn" onclick="openPage('tasks')">🕶️ Görevler</div>
-  <div class="btn" onclick="openPage('night')">🌃 Gece Hayatı</div>
-  <div class="btn" onclick="openPage('weapons')">🔫 Silah Kaçakçısı</div>
-  <div class="btn" onclick="openPage('hospital')">🏥 Hastane</div>
-  <div class="btn lock">🏢 İş Hayatı (Lv50)</div>
-  <div class="btn" onclick="openPage('status')">📊 Durumum</div>
-</div>
+<button onclick="show('missions')">🧨 Görevler</button>
+<button onclick="show('shop')">🛒 Satın Alım</button>
+<button onclick="heal()">🏥 Hastane</button>
 
-<!-- GÖREVLER -->
-<div id="tasks" class="hidden">
-  <h1>🕶️ Görevler</h1>
-  <p>Arka sokak işleri burada olacak.</p>
-  <div class="back" onclick="goBack()">⬅️ Geri</div>
-</div>
+<div id="missions" class="box hidden"></div>
+<div id="shop" class="box hidden"></div>
 
-<!-- GECE HAYATI -->
-<div id="night" class="hidden">
-  <h1>🌃 Gece Hayatı</h1>
-  <div class="btn">🍺 Gece Kulübü (Alkol)</div>
-  <div class="btn">💃 Genel Ev (Kadınlar)</div>
-  <div class="btn">☕ Coffee Shop (Uyuşturucu)</div>
-  <div class="back" onclick="goBack()">⬅️ Geri</div>
-</div>
-
-<!-- SİLAH KAÇAKÇISI -->
-<div id="weapons" class="hidden">
-  <h1>🔫 Silah Kaçakçısı</h1>
-  <p>🗡️ Yakın Dövüş</p>
-  <p>🔫 Tabancalar</p>
-  <p>🔫 SMG</p>
-  <p>💥 Ağır Silahlar</p>
-  <div class="back" onclick="goBack()">⬅️ Geri</div>
-</div>
-
-<!-- HASTANE -->
-<div id="hospital" class="hidden">
-  <h1>🏥 Hastane</h1>
-  <p>Bekle, iyileş veya token harca.</p>
-  <div class="back" onclick="goBack()">⬅️ Geri</div>
-</div>
-
-<!-- DURUM -->
-<div id="status" class="hidden">
-  <h1>📊 Durumum</h1>
-  <p>Seviye: 1</p>
-  <p>Enerji: 100</p>
-  <p>yTon: 0</p>
-  <div class="back" onclick="goBack()">⬅️ Geri</div>
-</div>
+<div id="result" class="box hidden"></div>
 
 <script>
-const tg=Telegram.WebApp;tg.expand();
+/* ================= SUPABASE ================= */
+const supabase = supabase.createClient(
+  "https://hwhscuyudwphnsipibpy.supabase.co",
+  "sb_publishable_dItLcV8z83CvDWuR8nTabA_ImTHGETu"
+);
 
-function selectChar(c){
-  localStorage.setItem("char",c);
-  document.getElementById("character").classList.add("hidden");
-  document.getElementById("menu").classList.remove("hidden");
-}
+const TELEGRAM_ID = "162154220";
 
-function openPage(id){
-  document.getElementById("menu").classList.add("hidden");
+/* ================= UI ================= */
+function show(id) {
+  document.querySelectorAll('.box').forEach(b => b.classList.add("hidden"));
   document.getElementById(id).classList.remove("hidden");
 }
 
-function goBack(){
-  document.querySelectorAll("div").forEach(d=>d.classList.add("hidden"));
-  document.getElementById("menu").classList.remove("hidden");
+/* ================= PLAYER ================= */
+async function loadPlayer() {
+  const { data } = await supabase
+    .from("players")
+    .select("*")
+    .eq("telegram_id", TELEGRAM_ID)
+    .single();
+
+  document.getElementById("playerInfo").innerHTML = `
+    <b>Karakter:</b> ${data.character}<br>
+    <b>Level:</b> ${data.level}<br>
+    <b>XP:</b> ${data.xp}<br>
+    <b>Enerji:</b> ${data.energy}<br>
+    <b>yTon:</b> ${data.yton}
+  `;
 }
 
-if(localStorage.getItem("char")){
-  document.getElementById("character").classList.add("hidden");
-  document.getElementById("menu").classList.remove("hidden");
+/* ================= MISSIONS ================= */
+async function loadMissions() {
+  const { data } = await supabase
+    .from("missions")
+    .select("*")
+    .eq("active", true);
+
+  let html = "<h3>Görevler</h3>";
+  data.forEach(m => {
+    html += `
+      <button onclick="doMission(${m.id})">
+        ${m.name}<br>
+        ⚡ ${m.energy_cost} | 🎯 Risk %${m.risk_percent} | 💰 ${m.yton_reward}
+      </button>
+    `;
+  });
+  document.getElementById("missions").innerHTML = html;
 }
+
+/* ================= DO MISSION ================= */
+async function doMission(id) {
+  const { data } = await supabase.rpc("do_mission", {
+    p_telegram_id: TELEGRAM_ID,
+    p_mission_id: id
+  });
+
+  showResult(data);
+  loadPlayer();
+}
+
+/* ================= SHOP ================= */
+async function loadShop() {
+  const items = [
+    { id:1, name:"🍺 Alkol (50 yTon)" },
+    { id:2, name:"🔫 Silah (200 yTon)" },
+    { id:3, name:"💊 Uyuşturucu (150 yTon)" }
+  ];
+
+  let html = "<h3>Satın Alım</h3>";
+  items.forEach(i => {
+    html += `<button onclick="buy(${i.id})">${i.name}</button>`;
+  });
+  document.getElementById("shop").innerHTML = html;
+}
+
+async function buy(id) {
+  const { data } = await supabase.rpc("buy_item", {
+    p_telegram_id: TELEGRAM_ID,
+    p_item_id: id
+  });
+
+  showResult(data);
+  loadPlayer();
+}
+
+/* ================= HOSPITAL ================= */
+async function heal() {
+  const { data } = await supabase.rpc("hospital_heal", {
+    p_telegram_id: TELEGRAM_ID
+  });
+
+  showResult(data);
+  loadPlayer();
+}
+
+/* ================= RESULT ================= */
+function showResult(res) {
+  const box = document.getElementById("result");
+  box.classList.remove("hidden");
+  box.innerHTML = JSON.stringify(res, null, 2);
+}
+
+/* ================= INIT ================= */
+loadPlayer();
+loadMissions();
+loadShop();
 </script>
 
 </body>
