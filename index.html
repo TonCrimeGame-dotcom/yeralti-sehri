@@ -53,23 +53,28 @@ button:hover{background:#333;}
 <div id="result" class="box hidden"></div>
 
 <script>
-/* ================= SUPABASE ================= */
-const supabase = supabase.createClient(
+/* ========== SUPABASE (DOĞRU TANIM) ========== */
+const sb = supabase.createClient(
   "https://hwhscuyudwphnsipibpy.supabase.co",
   "sb_publishable_dItLcV8z83CvDWuR8nTabA_ImTHGETu"
 );
 
 const TELEGRAM_ID = "162154220";
 
-/* ================= PLAYER ================= */
+/* ========== GENEL ========== */
+function hideAll(){
+  document.querySelectorAll(".box").forEach(b=>b.classList.add("hidden"));
+}
+
+/* ========== PLAYER ========== */
 async function loadPlayer(){
-  const { data, error } = await supabase
+  const { data, error } = await sb
     .from("players")
     .select("*")
     .eq("telegram_id", TELEGRAM_ID)
     .single();
 
-  if(error){
+  if(error || !data){
     document.getElementById("playerInfo").innerHTML =
       "<div class='error'>Oyuncu bulunamadı</div>";
     return;
@@ -84,19 +89,19 @@ async function loadPlayer(){
   `;
 }
 
-/* ================= MISSIONS ================= */
+/* ========== MISSIONS ========== */
 async function loadMissions(){
   hideAll();
   const box = document.getElementById("missions");
   box.classList.remove("hidden");
   box.innerHTML = "<h3>Görevler</h3>";
 
-  const { data, error } = await supabase
+  const { data, error } = await sb
     .from("missions")
     .select("*")
     .eq("active", true);
 
-  if(error || data.length === 0){
+  if(error || !data || data.length === 0){
     box.innerHTML += "<div>Aktif görev yok</div>";
     return;
   }
@@ -118,7 +123,7 @@ async function doMission(id){
   res.classList.remove("hidden");
   res.innerHTML = "Görev yapılıyor...";
 
-  const { data, error } = await supabase.rpc("do_mission",{
+  const { data, error } = await sb.rpc("do_mission",{
     p_telegram_id: TELEGRAM_ID,
     p_mission_id: id
   });
@@ -132,7 +137,7 @@ async function doMission(id){
   loadPlayer();
 }
 
-/* ================= SHOP ================= */
+/* ========== SHOP ========== */
 function loadShop(){
   hideAll();
   const box = document.getElementById("shop");
@@ -160,7 +165,7 @@ async function buyItem(id){
   res.classList.remove("hidden");
   res.innerHTML = "Satın alınıyor...";
 
-  const { data, error } = await supabase.rpc("buy_item",{
+  const { data, error } = await sb.rpc("buy_item",{
     p_telegram_id: TELEGRAM_ID,
     p_item_id: id
   });
@@ -174,70 +179,27 @@ async function buyItem(id){
   loadPlayer();
 }
 
-/* ================= HOSPITAL ================= */
+/* ========== HOSPITAL ========== */
 async function hospital(){
   hideAll();
   const res = document.getElementById("result");
   res.classList.remove("hidden");
   res.innerHTML = "Tedavi ediliyor...";
 
-  const { data, error } = await supabase.rpc("hospital_heal",{
+  const { data, error } = await sb.rpc("hospital_heal",{
     p_telegram_id: TELEGRAM_ID
   });
 
   if(error || data?.error){
     res.innerHTML = `<div class="error">${error?.message || data.error}</div>`;
   }else{
-    res.innerHTML = `<div class="success">Enerji dolduruldu!</div>`;
+    res.innerHTML = `<div class="success">Enerji doldu!</div>`;
   }
 
   loadPlayer();
 }
 
-/* ================= UTILS ================= */
-function hideAll(){
-  document.querySelectorAll(".box").forEach(b=>b.classList.add("hidden"));
-}
-
-/* ================= INIT ================= */
-loadPlayer();
-</script>
-
-</body>
-</html>  });
-}
-
-async function buy(id){
-  const { data } = await supabase.rpc("buy_item", {
-    p_telegram_id: TELEGRAM_ID,
-    p_item_id: id
-  });
-
-  show("result");
-  document.getElementById("result").innerHTML =
-    data?.error
-      ? `<div class="error">${data.error}</div>`
-      : `<div class="success">Satın alındı</div>`;
-
-  loadPlayer();
-}
-
-// ================== HOSPITAL ==================
-async function hospital(){
-  const { data } = await supabase.rpc("hospital_heal", {
-    p_telegram_id: TELEGRAM_ID
-  });
-
-  show("result");
-  document.getElementById("result").innerHTML =
-    data?.error
-      ? `<div class="error">${data.error}</div>`
-      : `<div class="success">İyileştirildin</div>`;
-
-  loadPlayer();
-}
-
-// ================== INIT ==================
+/* ========== INIT ========== */
 loadPlayer();
 </script>
 
