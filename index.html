@@ -5,31 +5,102 @@
 <title>Yeraltı Şehri</title>
 <script src="https://telegram.org/js/telegram-web-app.js"></script>
 <style>
-body{background:#0f0f0f;color:#fff;font-family:Arial;padding:20px}
-.btn{background:#1c1c1c;padding:16px;margin:12px 0;border-radius:10px;text-align:center;font-size:18px}
+body{background:#0e0e0e;color:#fff;font-family:Arial;margin:0;padding:20px}
+h1{margin-top:0}
+.btn{background:#1c1c1c;padding:16px;margin:10px 0;border-radius:10px;text-align:center;font-size:18px}
+.btn:active{background:#333}
+.lock{opacity:.4}
+.back{text-align:center;margin-top:20px;color:#aaa}
+.hidden{display:none}
 </style>
 </head>
+
 <body>
 
-<h1>🩸 Yeraltı Şehri</h1>
-<div id="user"></div>
+<!-- KARAKTER SEÇİMİ -->
+<div id="character">
+  <h1>🧬 Karakter Seç</h1>
+  <div class="btn" onclick="selectChar('Yakışıklı Hırsız')">😎 Yakışıklı Hırsız</div>
+  <div class="btn" onclick="selectChar('Sert Adam')">💪 Sert Adam</div>
+  <div class="btn" onclick="selectChar('Sexy Hırsız')">🔥 Sexy Hırsız</div>
+  <div class="btn" onclick="selectChar('Sert Kadın')">🩸 Sert Kadın</div>
+</div>
 
-<div class="btn">🕶️ Görevler</div>
-<div class="btn">🌃 Gece Hayatı</div>
-<div class="btn">🔫 Silah Kaçakçısı</div>
-<div class="btn">🏥 Hastane</div>
-<div class="btn">📊 Durumum</div>
+<!-- ANA MENÜ -->
+<div id="menu" class="hidden">
+  <h1>🩸 Yeraltı Şehri</h1>
+  <div class="btn" onclick="openPage('tasks')">🕶️ Görevler</div>
+  <div class="btn" onclick="openPage('night')">🌃 Gece Hayatı</div>
+  <div class="btn" onclick="openPage('weapons')">🔫 Silah Kaçakçısı</div>
+  <div class="btn" onclick="openPage('hospital')">🏥 Hastane</div>
+  <div class="btn lock">🏢 İş Hayatı (Lv50)</div>
+  <div class="btn" onclick="openPage('status')">📊 Durumum</div>
+</div>
+
+<!-- GÖREVLER -->
+<div id="tasks" class="hidden">
+  <h1>🕶️ Görevler</h1>
+  <p>Arka sokak işleri burada olacak.</p>
+  <div class="back" onclick="goBack()">⬅️ Geri</div>
+</div>
+
+<!-- GECE HAYATI -->
+<div id="night" class="hidden">
+  <h1>🌃 Gece Hayatı</h1>
+  <div class="btn">🍺 Gece Kulübü (Alkol)</div>
+  <div class="btn">💃 Genel Ev (Kadınlar)</div>
+  <div class="btn">☕ Coffee Shop (Uyuşturucu)</div>
+  <div class="back" onclick="goBack()">⬅️ Geri</div>
+</div>
+
+<!-- SİLAH KAÇAKÇISI -->
+<div id="weapons" class="hidden">
+  <h1>🔫 Silah Kaçakçısı</h1>
+  <p>🗡️ Yakın Dövüş</p>
+  <p>🔫 Tabancalar</p>
+  <p>🔫 SMG</p>
+  <p>💥 Ağır Silahlar</p>
+  <div class="back" onclick="goBack()">⬅️ Geri</div>
+</div>
+
+<!-- HASTANE -->
+<div id="hospital" class="hidden">
+  <h1>🏥 Hastane</h1>
+  <p>Bekle, iyileş veya token harca.</p>
+  <div class="back" onclick="goBack()">⬅️ Geri</div>
+</div>
+
+<!-- DURUM -->
+<div id="status" class="hidden">
+  <h1>📊 Durumum</h1>
+  <p>Seviye: 1</p>
+  <p>Enerji: 100</p>
+  <p>yTon: 0</p>
+  <div class="back" onclick="goBack()">⬅️ Geri</div>
+</div>
 
 <script>
-const tg = Telegram.WebApp;
-tg.expand();
+const tg=Telegram.WebApp;tg.expand();
 
-if(tg.initDataUnsafe?.user){
-  document.getElementById("user").innerText =
-    "Hoş geldin " + tg.initDataUnsafe.user.first_name;
-}else{
-  document.getElementById("user").innerText =
-    "Telegram üzerinden açmalısın";
+function selectChar(c){
+  localStorage.setItem("char",c);
+  document.getElementById("character").classList.add("hidden");
+  document.getElementById("menu").classList.remove("hidden");
+}
+
+function openPage(id){
+  document.getElementById("menu").classList.add("hidden");
+  document.getElementById(id).classList.remove("hidden");
+}
+
+function goBack(){
+  document.querySelectorAll("div").forEach(d=>d.classList.add("hidden"));
+  document.getElementById("menu").classList.remove("hidden");
+}
+
+if(localStorage.getItem("char")){
+  document.getElementById("character").classList.add("hidden");
+  document.getElementById("menu").classList.remove("hidden");
 }
 </script>
 
