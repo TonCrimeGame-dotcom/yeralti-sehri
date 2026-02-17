@@ -8,13 +8,33 @@
 <script src="https://unpkg.com/@supabase/supabase-js@2"></script>
 
 <style>
-body { background:#0b0b0b; color:#fff; font-family:Arial; padding:20px }
-h1{text-align:center}
-button{width:100%;padding:14px;margin:8px 0;background:#1e1e1e;color:#fff;border:none;border-radius:6px;font-size:16px}
-.box{background:#151515;padding:15px;border-radius:8px;margin-top:15px}
-.hidden{display:none}
-.success{color:#4caf50}
-.error{color:#f44336}
+body{
+  background:#0b0b0b;
+  color:#fff;
+  font-family:Arial, sans-serif;
+  padding:20px;
+}
+h1{text-align:center;}
+button{
+  width:100%;
+  padding:14px;
+  margin:8px 0;
+  background:#1e1e1e;
+  color:#fff;
+  border:none;
+  border-radius:6px;
+  font-size:16px;
+}
+button:hover{background:#333;}
+.box{
+  background:#151515;
+  padding:15px;
+  border-radius:8px;
+  margin-bottom:15px;
+}
+.hidden{display:none;}
+.success{color:#4caf50;}
+.error{color:#ff5252;}
 </style>
 </head>
 
@@ -22,10 +42,10 @@ button{width:100%;padding:14px;margin:8px 0;background:#1e1e1e;color:#fff;border
 
 <h1>🔥 Yeraltı Şehri</h1>
 
-<div class="box" id="playerInfo">Yükleniyor...</div>
+<div id="playerInfo" class="box">Yükleniyor...</div>
 
-<button onclick="show('missions')">💣 Görevler</button>
-<button onclick="show('shop')">🛒 Satın Alım</button>
+<button onclick="loadMissions()">💣 Görevler</button>
+<button onclick="loadShop()">🛒 Satın Alım</button>
 <button onclick="hospital()">🏥 Hastane</button>
 
 <div id="missions" class="box hidden"></div>
@@ -33,7 +53,7 @@ button{width:100%;padding:14px;margin:8px 0;background:#1e1e1e;color:#fff;border
 <div id="result" class="box hidden"></div>
 
 <script>
-// ================== SUPABASE ==================
+/* ================= SUPABASE ================= */
 const supabase = supabase.createClient(
   "https://hwhscuyudwphnsipibpy.supabase.co",
   "sb_publishable_dItLcV8z83CvDWuR8nTabA_ImTHGETu"
@@ -41,13 +61,7 @@ const supabase = supabase.createClient(
 
 const TELEGRAM_ID = "162154220";
 
-// ================== UI ==================
-function show(id){
-  document.querySelectorAll('.box').forEach(b=>b.classList.add('hidden'));
-  document.getElementById(id).classList.remove('hidden');
-}
-
-// ================== PLAYER ==================
+/* ================= PLAYER ================= */
 async function loadPlayer(){
   const { data, error } = await supabase
     .from("players")
@@ -56,7 +70,8 @@ async function loadPlayer(){
     .single();
 
   if(error){
-    document.getElementById("playerInfo").innerHTML="Oyuncu bulunamadı";
+    document.getElementById("playerInfo").innerHTML =
+      "<div class='error'>Oyuncu bulunamadı</div>";
     return;
   }
 
@@ -69,63 +84,127 @@ async function loadPlayer(){
   `;
 }
 
-// ================== MISSIONS ==================
+/* ================= MISSIONS ================= */
 async function loadMissions(){
-  show("missions");
+  hideAll();
   const box = document.getElementById("missions");
-  box.innerHTML = "Görevler yükleniyor...";
+  box.classList.remove("hidden");
+  box.innerHTML = "<h3>Görevler</h3>";
 
-  const { data } = await supabase
+  const { data, error } = await supabase
     .from("missions")
     .select("*")
     .eq("active", true);
 
-  box.innerHTML = "<h3>Görevler</h3>";
+  if(error || data.length === 0){
+    box.innerHTML += "<div>Aktif görev yok</div>";
+    return;
+  }
 
   data.forEach(m=>{
     box.innerHTML += `
       <button onclick="doMission(${m.id})">
         ${m.name}<br>
-        Enerji: ${m.energy_cost} | Risk: %${m.risk_percent} | Ödül: ${m.yton_reward}
+        Enerji: ${m.energy_cost} | Risk: %${m.risk_percent}<br>
+        Ödül: ${m.yton_reward} YTon
       </button>
     `;
   });
 }
 
 async function doMission(id){
-  const { data } = await supabase.rpc("do_mission", {
+  hideAll();
+  const res = document.getElementById("result");
+  res.classList.remove("hidden");
+  res.innerHTML = "Görev yapılıyor...";
+
+  const { data, error } = await supabase.rpc("do_mission",{
     p_telegram_id: TELEGRAM_ID,
     p_mission_id: id
   });
 
-  show("result");
-  document.getElementById("result").innerHTML =
-    data?.error
-      ? `<div class="error">${data.error}</div>`
-      : `<div class="success">Görev tamamlandı</div>`;
+  if(error || data?.error){
+    res.innerHTML = `<div class="error">${error?.message || data.error}</div>`;
+  }else{
+    res.innerHTML = `<div class="success">Görev tamamlandı!</div>`;
+  }
 
   loadPlayer();
 }
 
-// ================== SHOP ==================
-async function loadShop(){
-  show("shop");
+/* ================= SHOP ================= */
+function loadShop(){
+  hideAll();
   const box = document.getElementById("shop");
+  box.classList.remove("hidden");
   box.innerHTML = "<h3>Satın Alım</h3>";
 
   const items = [
-    {id:1,name:"Tabanca",price:50},
-    {id:2,name:"Alkol",price:10},
-    {id:3,name:"Uyuşturucu",price:30}
+    {id:1, name:"🔫 Tabanca", price:50},
+    {id:2, name:"🍺 Alkol", price:10},
+    {id:3, name:"💊 Uyuşturucu", price:30}
   ];
 
   items.forEach(i=>{
     box.innerHTML += `
-      <button onclick="buy(${i.id})">
-        ${i.name} - ${i.price} YTon
+      <button onclick="buyItem(${i.id})">
+        ${i.name} – ${i.price} YTon
       </button>
     `;
   });
+}
+
+async function buyItem(id){
+  hideAll();
+  const res = document.getElementById("result");
+  res.classList.remove("hidden");
+  res.innerHTML = "Satın alınıyor...";
+
+  const { data, error } = await supabase.rpc("buy_item",{
+    p_telegram_id: TELEGRAM_ID,
+    p_item_id: id
+  });
+
+  if(error || data?.error){
+    res.innerHTML = `<div class="error">${error?.message || data.error}</div>`;
+  }else{
+    res.innerHTML = `<div class="success">Satın alım başarılı!</div>`;
+  }
+
+  loadPlayer();
+}
+
+/* ================= HOSPITAL ================= */
+async function hospital(){
+  hideAll();
+  const res = document.getElementById("result");
+  res.classList.remove("hidden");
+  res.innerHTML = "Tedavi ediliyor...";
+
+  const { data, error } = await supabase.rpc("hospital_heal",{
+    p_telegram_id: TELEGRAM_ID
+  });
+
+  if(error || data?.error){
+    res.innerHTML = `<div class="error">${error?.message || data.error}</div>`;
+  }else{
+    res.innerHTML = `<div class="success">Enerji dolduruldu!</div>`;
+  }
+
+  loadPlayer();
+}
+
+/* ================= UTILS ================= */
+function hideAll(){
+  document.querySelectorAll(".box").forEach(b=>b.classList.add("hidden"));
+}
+
+/* ================= INIT ================= */
+loadPlayer();
+</script>
+
+</body>
+</html>  });
 }
 
 async function buy(id){
