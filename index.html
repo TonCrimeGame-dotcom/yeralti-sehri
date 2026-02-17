@@ -4,144 +4,146 @@
 <meta charset="UTF-8">
 <title>Yeraltı Şehri</title>
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
+
 <script src="https://unpkg.com/@supabase/supabase-js@2"></script>
 
 <style>
-body{background:#0b0b0b;color:#fff;font-family:Arial;padding:20px}
-h1{text-align:center}
-.box{background:#151515;padding:15px;border-radius:8px;margin-bottom:15px}
-button{width:100%;padding:14px;margin:6px 0;background:#1e1e1e;color:#fff;border:none;border-radius:6px;font-size:16px}
-button:hover{background:#333}
-.hidden{display:none}
-.success{color:#4caf50}
-.error{color:#f44336}
+body { background:#0b0b0b; color:#fff; font-family:Arial; padding:20px }
+h1 { text-align:center }
+.box { background:#151515; padding:15px; border-radius:8px; margin-bottom:15px }
+button { width:100%; padding:14px; margin:6px 0; background:#1e1e1e; color:#fff; border:none; border-radius:6px; font-size:16px }
+button:hover { background:#333 }
+.hidden { display:none }
+.success { color:#4caf50 }
+.error { color:#f44336 }
 </style>
 </head>
 
 <body>
 
-<h1>🔥 Yeraltı Şehri</h1>
+<h1>🔥 Yeraltı Şehri (+19)</h1>
 
-<div class="box" id="playerInfo">Yükleniyor...</div>
+<div class="box" id="player">Yükleniyor...</div>
 
-<button onclick="show('missions')">💣 Görevler</button>
-<button onclick="show('shop')">🛒 Satın Alım</button>
-<button onclick="show('hospital')">🏥 Hastane</button>
-<button onclick="show('nightlife')">🌃 Gece Hayatı</button>
-<button onclick="show('weapons')">🔫 Silah Kaçakçısı</button>
+<button onclick="openBox('missions')">💣 Görev Yap</button>
+<button onclick="openBox('weapons')">🔫 Silah Kaçakçısı</button>
+<button onclick="openBox('nightlife')">🌃 Gece Hayatı</button>
+<button onclick="openBox('hospital')">🏥 Hastane</button>
 
 <div id="missions" class="box hidden"></div>
-<div id="shop" class="box hidden"></div>
-<div id="hospital" class="box hidden"></div>
-<div id="nightlife" class="box hidden"></div>
 <div id="weapons" class="box hidden"></div>
+<div id="nightlife" class="box hidden"></div>
+<div id="hospital" class="box hidden"></div>
 <div id="result" class="box hidden"></div>
 
 <script>
-const supabase = supabase.createClient(
+/* ===== SUPABASE ===== */
+const sb = supabase.createClient(
   "https://hwhscuyudwphnsipibpy.supabase.co",
   "sb_publishable_dItLcV8z83CvDWuR8nTabA_ImTHGETu"
 );
 
 const TELEGRAM_ID = "162154220";
 
-function show(id){
+/* ===== UI ===== */
+function openBox(id){
   document.querySelectorAll(".box").forEach(b=>b.classList.add("hidden"));
   document.getElementById(id).classList.remove("hidden");
 }
 
+/* ===== PLAYER ===== */
 async function loadPlayer(){
-  const {data} = await supabase
+  const { data } = await sb
     .from("players")
     .select("*")
-    .eq("telegram_id",TELEGRAM_ID)
+    .eq("telegram_id", TELEGRAM_ID)
     .single();
 
-  document.getElementById("playerInfo").innerHTML=`
-  <b>Karakter:</b> ${data.character}<br>
-  <b>Level:</b> ${data.level}<br>
-  <b>XP:</b> ${data.xp}<br>
-  <b>Enerji:</b> ${data.energy}<br>
-  <b>YTon:</b> ${data.yton}`;
+  document.getElementById("player").innerHTML =
+    `<b>Karakter:</b> ${data.character}<br>
+     <b>Level:</b> ${data.level}<br>
+     <b>XP:</b> ${data.xp}<br>
+     <b>Enerji:</b> ${data.energy}<br>
+     <b>YTon:</b> ${data.yton}`;
 }
 
+/* ===== MISSIONS ===== */
 async function loadMissions(){
-  const {data}=await supabase.from("missions").select("*").eq("active",true);
-  let html="<h3>Görevler</h3>";
+  const { data } = await sb.from("missions").select("*").eq("active", true);
+  let html = "<h3>Görevler</h3>";
+
+  if(!data.length) html += "Görev yok";
+
   data.forEach(m=>{
-    html+=`<button onclick="doMission(${m.id})">${m.name} | Risk %${m.risk_percent}</button>`;
+    html += `<button onclick="doMission(${m.id})">${m.name} | Risk %${m.risk_percent}</button>`;
   });
-  document.getElementById("missions").innerHTML=html;
+
+  document.getElementById("missions").innerHTML = html;
 }
 
 async function doMission(id){
-  const {data}=await supabase.rpc("do_mission",{p_telegram_id:TELEGRAM_ID,p_mission_id:id});
-  show("result");
-  document.getElementById("result").innerHTML=
-    data?.error ? `<span class="error">${data.error}</span>` :
-    `<span class="success">Görev tamamlandı</span>`;
+  const { data } = await sb.rpc("do_mission", {
+    p_telegram_id: TELEGRAM_ID,
+    p_mission_id: id
+  });
+
+  showResult(data?.error ? data.error : "Görev başarılı");
   loadPlayer();
 }
 
+/* ===== BUY ===== */
 async function buy(id){
-  const {data}=await supabase.rpc("buy_item",{p_telegram_id:TELEGRAM_ID,p_item_id:id});
-  show("result");
-  document.getElementById("result").innerHTML=
-    data?.error ? `<span class="error">${data.error}</span>` :
-    `<span class="success">Satın alındı</span>`;
+  const { data } = await sb.rpc("buy_item", {
+    p_telegram_id: TELEGRAM_ID,
+    p_item_id: id
+  });
+
+  showResult(data?.error ? data.error : "Satın alındı");
   loadPlayer();
 }
 
-function loadShop(){
-  document.getElementById("shop").innerHTML=`
-  <h3>Genel Market</h3>
-  <button onclick="buy(1)">Enerji İçeceği</button>`;
-}
-
-function loadHospital(){
-  document.getElementById("hospital").innerHTML=
-    `<button onclick="heal()">Tedavi Ol</button>`;
-}
-
+/* ===== HOSPITAL ===== */
 async function heal(){
-  const {data}=await supabase.rpc("hospital_heal",{p_telegram_id:TELEGRAM_ID});
-  show("result");
-  document.getElementById("result").innerHTML=
-    data?.error ? `<span class="error">${data.error}</span>` :
-    `<span class="success">İyileştirildin</span>`;
+  const { data } = await sb.rpc("hospital_heal", {
+    p_telegram_id: TELEGRAM_ID
+  });
+
+  showResult(data?.error ? data.error : "İyileştirildin");
   loadPlayer();
 }
 
-function loadNightLife(){
-  document.getElementById("nightlife").innerHTML=`
-  <h3>🌃 Gece Kulübü</h3>
-  <button onclick="buy(10)">Bira</button>
-  <button onclick="buy(11)">Votka</button>
-  <button onclick="buy(12)">Viski</button>
-
-  <h3>☕ Coffee Shop</h3>
-  <button onclick="buy(20)">Ot</button>
-  <button onclick="buy(21)">Mantar</button>
-  <button onclick="buy(22)">Kimyasal</button>
-
-  <h3>💃 Pavyon</h3>
-  <button disabled>Yakında</button>`;
+/* ===== RESULT ===== */
+function showResult(msg){
+  document.getElementById("result").classList.remove("hidden");
+  document.getElementById("result").innerHTML =
+    msg.includes("error") ? `<span class="error">${msg}</span>` :
+    `<span class="success">${msg}</span>`;
 }
 
-function loadWeapons(){
-  document.getElementById("weapons").innerHTML=`
-  <h3>🔫 Silah Kaçakçısı</h3>
-  <button onclick="buy(30)">Tabanca</button>
-  <button onclick="buy(31)">Pompalı</button>
-  <button onclick="buy(32)">AK-47</button>`;
-}
+/* ===== STATIC MENUS ===== */
+document.getElementById("weapons").innerHTML = `
+<h3>🔫 Silah Kaçakçısı</h3>
+<button onclick="buy(30)">Tabanca</button>
+<button onclick="buy(31)">Pompalı</button>
+<button onclick="buy(32)">AK-47</button>
+`;
 
+document.getElementById("nightlife").innerHTML = `
+<h3>🌃 Gece Kulübü</h3>
+<button onclick="buy(10)">Bira</button>
+<button onclick="buy(11)">Votka</button>
+
+<h3>☕ Coffee Shop</h3>
+<button onclick="buy(20)">Ot</button>
+<button onclick="buy(21)">Mantar</button>
+`;
+
+document.getElementById("hospital").innerHTML =
+  `<button onclick="heal()">Tedavi Ol</button>`;
+
+/* ===== INIT ===== */
 loadPlayer();
 loadMissions();
-loadShop();
-loadHospital();
-loadNightLife();
-loadWeapons();
 </script>
 
 </body>
