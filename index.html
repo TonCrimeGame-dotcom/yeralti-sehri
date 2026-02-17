@@ -76,10 +76,10 @@ async function hospital(){
   loadPlayer();
 }
 
-/* ================= NIGHTLIFE ================= */
+/* ================= NIGHTLIFE MAIN ================= */
 function openNightlife(){
   showBox("nightlife");
-  document.getElementById("nightlife").innerHTML=`
+  document.getElementById("nightlife").innerHTML = `
     <b>🌃 Gece Hayatı</b>
     <button onclick="openClub()">🍸 Gece Kulübü</button>
     <button onclick="openCoffee()">☕ Coffee Shop</button>
@@ -87,59 +87,35 @@ function openNightlife(){
   `;
 }
 
-/* ================= GECE KULÜBÜ – 30 ALKOL ================= */
-const drinks = [
- "Bira","Şarap","Viski","Vodka","Rom","Tekila","Cin","Likör","Absinthe","Brendi",
- "Şampanya","Prosecco","Bourbon","Scotch","Mezcal","Sake","Rakı","Aperol","Martini","Negroni",
- "Mojito","Daiquiri","Bloody Mary","Cosmopolitan","Old Fashioned","Manhattan","Caipirinha","Spritz","Gin Tonic","Long Island"
-];
-
+/* ================= GECE KULÜBÜ ================= */
+const drinks = Array.from({length:30},(_,i)=>`Özel İçki ${i+1}`);
 function openClub(){
   showBox("nightlife");
-  let html="<b>🍸 Gece Kulübü</b><small> Enerji + Moral</small>";
+  let html="<b>🍸 Gece Kulübü</b>";
   drinks.forEach((d,i)=>{
-    html+=`<button onclick="buy(${100+i})">🍹 ${d} | +${2+i%5} Enerji – ${10+i*2} YTon</button>`;
+    html+=`<button onclick="buy(${100+i})">🍹 ${d} | Enerji +${2+i%4} – ${10+i*2} YTon</button>`;
   });
   html+=`<button onclick="openNightlife()">⬅ Geri</button>`;
   document.getElementById("nightlife").innerHTML=html;
 }
 
-/* ================= COFFEE SHOP – 30 UYUŞTURUCU ================= */
-const drugs = [
- "Mantar","Çizik","Pembe Toz","Beyaz Bulut","Kara Taş","Yeşil Kristal","Mavi Hap","Kırmızı Hap","Altın Toz","Gece Tozu",
- "Lunar","Solar","Venom","Ghost","Pulse","Echo","Nova","Zen","Rush","Flash",
- "Deep","Trip","Wave","Chill","Boost","Overdrive","Focus","Drift","Spice","Void"
-];
-
+/* ================= COFFEE SHOP ================= */
+const drugs = Array.from({length:30},(_,i)=>`Madde ${i+1}`);
 function openCoffee(){
   showBox("nightlife");
-  let html="<b>☕ Coffee Shop</b><small> XP / Risk</small>";
+  let html="<b>☕ Coffee Shop</b>";
   drugs.forEach((d,i)=>{
-    html+=`<button onclick="buy(${200+i})">💊 ${d} | XP +${3+i%7} – ${30+i*3} YTon</button>`;
+    html+=`<button onclick="buy(${200+i})">💊 ${d} | XP +${3+i%6} – ${30+i*3} YTon</button>`;
   });
   html+=`<button onclick="openNightlife()">⬅ Geri</button>`;
   document.getElementById("nightlife").innerHTML=html;
 }
 
-/* ================= GENEL EV – 50 KARAKTER ================= */
-const brothel = [
-  /* 35 Kadın */
-  "Mia Khalite","Lana Roads","Abella Dangerz","Riley Reidz","Sasha Greyz","Eva Elfiee","Angela Whitee",
-  "Brandi Lovee","Alexis Texas","Jenna Jamess","Emily Willss","Adriana Chekk","Violet Myerss","Nina Northh",
-  "Lexi Lunaa","Ava Addamss","Kendra Lustt","Scarlett Sagee","Megan Rainn","Kimmy Grangerr",
-  "Sofia Leonee","Valentina Nappii","Aria Alexiss","Autumn Fallss","Bella Rollins","Carmen Callawayy",
-  "Daisy Taylorr","Ella Knoxx","Gina Valentinaa","Hazel Mooree","Ivy Wolfee","Jane Wildee","Kali Rosess","Lia Lovelacee","Mona Wales",
-
-  /* 10 Erkek */
-  "Johnny Sinsor","Manuel Ferrar","Rocco Steell","James Deenn","Lex Steelee","Jason Luvv","Markus Dupreee","Tommy Gunnr","Mike Adrianoo","Ramon Nomarr",
-
-  /* 5 İkiz */
-  "Twin Angels","Double Trouble","Mirror Queens","Siam Night","Duo Desire"
-];
-
+/* ================= GENEL EV ================= */
+const brothel = Array.from({length:50},(_,i)=>`Özel Karakter ${i+1}`);
 function openBrothel(){
   showBox("nightlife");
-  let html="<b>💋 Genel Ev</b><small> Enerji & Moral</small>";
+  let html="<b>💋 Genel Ev</b>";
   brothel.forEach((n,i)=>{
     html+=`<button onclick="buy(${300+i})">💖 ${n} – ${30+i} YTon</button>`;
   });
