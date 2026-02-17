@@ -13,9 +13,9 @@ button{width:100%;padding:14px;margin:8px 0;background:#1a1a1a;color:#fff;border
 button:hover{background:#333}
 .box{background:#151515;padding:15px;border-radius:8px;margin-bottom:15px}
 .hidden{display:none}
-small{color:#aaa}
 .success{color:#4caf50}
 .error{color:#f44336}
+small{color:#aaa}
 </style>
 </head>
 
@@ -25,10 +25,16 @@ small{color:#aaa}
 
 <div id="playerInfo" class="box">Yükleniyor...</div>
 
-<button onclick="openNightlife()">🌃 Gece Hayatı</button>
+<button onclick="loadMissions()">💣 Görevler</button>
+<button onclick="loadMarket()">🛒 Market</button>
 <button onclick="hospital()">🏥 Hastane</button>
+<button onclick="openNightlife()">🌃 Gece Hayatı</button>
+<button onclick="openWeapons()">🔫 Silah Kaçakçısı</button>
 
+<div id="missions" class="box hidden"></div>
+<div id="market" class="box hidden"></div>
 <div id="nightlife" class="box hidden"></div>
+<div id="weapons" class="box hidden"></div>
 <div id="result" class="box hidden"></div>
 
 <script>
@@ -56,7 +62,9 @@ async function loadPlayer(){
     .select("*").eq("telegram_id", TELEGRAM_ID).single();
   if(!data) return;
   document.getElementById("playerInfo").innerHTML =
-    `<b>Enerji:</b> ${data.energy} | <b>YTon:</b> ${data.yton}`;
+    `<b>Karakter:</b> ${data.character}<br>
+     <b>Enerji:</b> ${data.energy} |
+     <b>YTon:</b> ${data.yton}`;
 }
 
 /* ================= BUY ================= */
@@ -69,14 +77,53 @@ async function buy(id){
   loadPlayer();
 }
 
-/* ================= HOSPITAL ================= */
+/* ================= GÖREVLER ================= */
+async function loadMissions(){
+  showBox("missions");
+  const box=document.getElementById("missions");
+  box.innerHTML="<b>💣 Görevler</b>";
+
+  const { data } = await sb.from("missions")
+    .select("*").eq("active",true);
+
+  if(!data || data.length===0){
+    box.innerHTML+="<p>Görev yok</p>"; return;
+  }
+
+  data.forEach(m=>{
+    box.innerHTML+=`
+      <button onclick="doMission(${m.id})">
+        ${m.name} | Enerji ${m.energy_cost}
+      </button>`;
+  });
+}
+async function doMission(id){
+  const { data } = await sb.rpc("do_mission",{
+    p_telegram_id: TELEGRAM_ID,
+    p_mission_id: id
+  });
+  showResult(data?.error ?? "Görev tamamlandı", !!data?.error);
+  loadPlayer();
+}
+
+/* ================= MARKET ================= */
+function loadMarket(){
+  showBox("market");
+  document.getElementById("market").innerHTML=`
+    <b>🛒 Market</b>
+    <button onclick="buy(1)">🍺 Alkol – 10</button>
+    <button onclick="buy(2)">💊 Uyuşturucu – 30</button>
+  `;
+}
+
+/* ================= HASTANE ================= */
 async function hospital(){
   const { data } = await sb.rpc("hospital_heal",{p_telegram_id: TELEGRAM_ID});
   showResult(data?.error ?? "İyileştirildin", !!data?.error);
   loadPlayer();
 }
 
-/* ================= NIGHTLIFE MAIN ================= */
+/* ================= GECE HAYATI (SABİT) ================= */
 function openNightlife(){
   showBox("nightlife");
   document.getElementById("nightlife").innerHTML = `
@@ -87,40 +134,47 @@ function openNightlife(){
   `;
 }
 
-/* ================= GECE KULÜBÜ ================= */
-const drinks = Array.from({length:30},(_,i)=>`Özel İçki ${i+1}`);
+/* ====== GECE KULÜBÜ – 30 İÇKİ ====== */
+const drinks=[...Array(30)].map((_,i)=>`Özel İçki ${i+1}`);
 function openClub(){
-  showBox("nightlife");
-  let html="<b>🍸 Gece Kulübü</b>";
+  let h="<b>🍸 Gece Kulübü</b>";
   drinks.forEach((d,i)=>{
-    html+=`<button onclick="buy(${100+i})">🍹 ${d} | Enerji +${2+i%4} – ${10+i*2} YTon</button>`;
+    h+=`<button onclick="buy(${100+i})">${d} | Enerji +${2+i%4} – ${10+i*2} YTon</button>`;
   });
-  html+=`<button onclick="openNightlife()">⬅ Geri</button>`;
-  document.getElementById("nightlife").innerHTML=html;
+  h+=`<button onclick="openNightlife()">⬅ Geri</button>`;
+  document.getElementById("nightlife").innerHTML=h;
 }
 
-/* ================= COFFEE SHOP ================= */
-const drugs = Array.from({length:30},(_,i)=>`Madde ${i+1}`);
+/* ====== COFFEE SHOP – 30 MADDE ====== */
+const drugs=[...Array(30)].map((_,i)=>`Madde ${i+1}`);
 function openCoffee(){
-  showBox("nightlife");
-  let html="<b>☕ Coffee Shop</b>";
+  let h="<b>☕ Coffee Shop</b>";
   drugs.forEach((d,i)=>{
-    html+=`<button onclick="buy(${200+i})">💊 ${d} | XP +${3+i%6} – ${30+i*3} YTon</button>`;
+    h+=`<button onclick="buy(${200+i})">${d} | XP +${3+i%6} – ${30+i*3} YTon</button>`;
   });
-  html+=`<button onclick="openNightlife()">⬅ Geri</button>`;
-  document.getElementById("nightlife").innerHTML=html;
+  h+=`<button onclick="openNightlife()">⬅ Geri</button>`;
+  document.getElementById("nightlife").innerHTML=h;
 }
 
-/* ================= GENEL EV ================= */
-const brothel = Array.from({length:50},(_,i)=>`Özel Karakter ${i+1}`);
+/* ====== GENEL EV – 50 KARAKTER ====== */
+const brothel=[...Array(50)].map((_,i)=>`Özel Karakter ${i+1}`);
 function openBrothel(){
-  showBox("nightlife");
-  let html="<b>💋 Genel Ev</b>";
+  let h="<b>💋 Genel Ev</b>";
   brothel.forEach((n,i)=>{
-    html+=`<button onclick="buy(${300+i})">💖 ${n} – ${30+i} YTon</button>`;
+    h+=`<button onclick="buy(${300+i})">${n} – ${30+i} YTon</button>`;
   });
-  html+=`<button onclick="openNightlife()">⬅ Geri</button>`;
-  document.getElementById("nightlife").innerHTML=html;
+  h+=`<button onclick="openNightlife()">⬅ Geri</button>`;
+  document.getElementById("nightlife").innerHTML=h;
+}
+
+/* ================= SİLAH KAÇAKÇISI ================= */
+function openWeapons(){
+  showBox("weapons");
+  document.getElementById("weapons").innerHTML=`
+    <b>🔫 Silah Kaçakçısı</b>
+    <button onclick="buy(401)">🔫 Tabanca – 50</button>
+    <button onclick="buy(402)">🔪 Bıçak – 20</button>
+  `;
 }
 
 /* ================= INIT ================= */
