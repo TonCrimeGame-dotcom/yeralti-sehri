@@ -1,43 +1,66 @@
 <!DOCTYPE html>
 <html lang="tr">
 <head>
-<meta charset="UTF-8">
+<meta charset="UTF-8" />
 <title>Yeraltı Şehri</title>
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 
 <script src="https://unpkg.com/@supabase/supabase-js@2"></script>
 
 <style>
-body { background:#0b0b0b; color:#fff; font-family:Arial; padding:20px }
-h1 { text-align:center }
-.box { background:#151515; padding:15px; border-radius:8px; margin-bottom:15px }
-button { width:100%; padding:14px; margin:6px 0; background:#1e1e1e; color:#fff; border:none; border-radius:6px; font-size:16px }
-button:hover { background:#333 }
-.hidden { display:none }
-.success { color:#4caf50 }
-.error { color:#f44336 }
+body{
+  background:#0b0b0b;
+  color:#fff;
+  font-family:Arial, sans-serif;
+  padding:20px;
+}
+h1{text-align:center}
+.box{
+  background:#151515;
+  border-radius:10px;
+  padding:15px;
+  margin-bottom:15px;
+}
+button{
+  width:100%;
+  padding:14px;
+  margin:6px 0;
+  background:#1e1e1e;
+  color:#fff;
+  border:none;
+  border-radius:8px;
+  font-size:16px;
+}
+button:hover{background:#333}
+.hidden{display:none}
+.success{color:#4caf50}
+.error{color:#f44336}
 </style>
 </head>
 
 <body>
 
-<h1>🔥 Yeraltı Şehri (+19)</h1>
+<h1>🔥 Yeraltı Şehri</h1>
 
-<div class="box" id="player">Yükleniyor...</div>
+<div id="playerInfo" class="box">Yükleniyor...</div>
 
-<button onclick="openBox('missions')">💣 Görev Yap</button>
-<button onclick="openBox('weapons')">🔫 Silah Kaçakçısı</button>
-<button onclick="openBox('nightlife')">🌃 Gece Hayatı</button>
-<button onclick="openBox('hospital')">🏥 Hastane</button>
+<div class="box">
+  <button onclick="openMissions()">💣 Görevler</button>
+  <button onclick="openShop()">🛒 Satın Alım</button>
+  <button onclick="openHospital()">🏥 Hastane</button>
+  <button onclick="openNightlife()">🌃 Gece Hayatı</button>
+  <button onclick="openWeapons()">🔫 Silah Kaçakçısı</button>
+</div>
 
 <div id="missions" class="box hidden"></div>
-<div id="weapons" class="box hidden"></div>
-<div id="nightlife" class="box hidden"></div>
+<div id="shop" class="box hidden"></div>
 <div id="hospital" class="box hidden"></div>
+<div id="nightlife" class="box hidden"></div>
+<div id="weapons" class="box hidden"></div>
 <div id="result" class="box hidden"></div>
 
 <script>
-/* ===== SUPABASE ===== */
+/* ================= SUPABASE ================= */
 const sb = supabase.createClient(
   "https://hwhscuyudwphnsipibpy.supabase.co",
   "sb_publishable_dItLcV8z83CvDWuR8nTabA_ImTHGETu"
@@ -45,105 +68,135 @@ const sb = supabase.createClient(
 
 const TELEGRAM_ID = "162154220";
 
-/* ===== UI ===== */
-function openBox(id){
-  document.querySelectorAll(".box").forEach(b=>b.classList.add("hidden"));
+/* ================= UTIL ================= */
+function hideAll(){
+  document.querySelectorAll(".box").forEach(b=>{
+    if(b.id!=="playerInfo") b.classList.add("hidden");
+  });
+}
+function showBox(id){
+  hideAll();
   document.getElementById(id).classList.remove("hidden");
 }
+function showResult(msg,isErr=false){
+  const r=document.getElementById("result");
+  r.classList.remove("hidden");
+  r.innerHTML=`<div class="${isErr?'error':'success'}">${msg}</div>`;
+}
 
-/* ===== PLAYER ===== */
+/* ================= PLAYER ================= */
 async function loadPlayer(){
-  const { data } = await sb
+  const { data, error } = await sb
     .from("players")
     .select("*")
     .eq("telegram_id", TELEGRAM_ID)
     .single();
 
-  document.getElementById("player").innerHTML =
-    `<b>Karakter:</b> ${data.character}<br>
-     <b>Level:</b> ${data.level}<br>
-     <b>XP:</b> ${data.xp}<br>
-     <b>Enerji:</b> ${data.energy}<br>
-     <b>YTon:</b> ${data.yton}`;
+  if(error){
+    document.getElementById("playerInfo").innerHTML="Oyuncu bulunamadı";
+    return;
+  }
+
+  document.getElementById("playerInfo").innerHTML=`
+    <b>Karakter:</b> ${data.character}<br>
+    <b>Level:</b> ${data.level}<br>
+    <b>XP:</b> ${data.xp}<br>
+    <b>Enerji:</b> ${data.energy}<br>
+    <b>YTon:</b> ${data.yton}
+  `;
 }
 
-/* ===== MISSIONS ===== */
-async function loadMissions(){
-  const { data } = await sb.from("missions").select("*").eq("active", true);
-  let html = "<h3>Görevler</h3>";
+/* ================= MISSIONS ================= */
+async function openMissions(){
+  showBox("missions");
+  const box=document.getElementById("missions");
+  box.innerHTML="<b>Görevler</b><br>";
 
-  if(!data.length) html += "Görev yok";
+  const { data } = await sb.from("missions").select("*").eq("active",true);
+
+  if(!data || data.length===0){
+    box.innerHTML+="Görev yok";
+    return;
+  }
 
   data.forEach(m=>{
-    html += `<button onclick="doMission(${m.id})">${m.name} | Risk %${m.risk_percent}</button>`;
+    box.innerHTML+=`
+      <button onclick="doMission(${m.id})">
+        ${m.name} (+${m.yton_reward} YTon)
+      </button>`;
   });
-
-  document.getElementById("missions").innerHTML = html;
 }
 
 async function doMission(id){
-  const { data } = await sb.rpc("do_mission", {
+  const { data } = await sb.rpc("do_mission",{
     p_telegram_id: TELEGRAM_ID,
     p_mission_id: id
   });
-
-  showResult(data?.error ? data.error : "Görev başarılı");
+  showResult(data?.error ?? "Görev tamamlandı", !!data?.error);
   loadPlayer();
 }
 
-/* ===== BUY ===== */
+/* ================= SHOP ================= */
+function openShop(){
+  showBox("shop");
+  document.getElementById("shop").innerHTML=`
+    <b>Satın Alım</b>
+    <button onclick="buy(11)">🍺 Alkol (10)</button>
+    <button onclick="buy(21)">🌿 Uyuşturucu (30)</button>
+  `;
+}
+
+/* ================= WEAPONS ================= */
+function openWeapons(){
+  showBox("weapons");
+  document.getElementById("weapons").innerHTML=`
+    <b>Silah Kaçakçısı</b>
+    <button onclick="buy(31)">🔫 Tabanca (50)</button>
+    <button onclick="buy(32)">💥 Pompalı (80)</button>
+  `;
+}
+
+/* ================= NIGHTLIFE ================= */
+function openNightlife(){
+  showBox("nightlife");
+  document.getElementById("nightlife").innerHTML=`
+    <b>Gece Kulübü</b>
+    <button onclick="buy(11)">🍸 Votka</button>
+    <hr>
+    <b>Coffee Shop</b>
+    <button onclick="buy(21)">🌿 Ot</button>
+  `;
+}
+
+/* ================= BUY ================= */
 async function buy(id){
-  const { data } = await sb.rpc("buy_item", {
+  const { data } = await sb.rpc("buy_item",{
     p_telegram_id: TELEGRAM_ID,
     p_item_id: id
   });
-
-  showResult(data?.error ? data.error : "Satın alındı");
+  showResult(data?.error ?? "Satın alındı", !!data?.error);
   loadPlayer();
 }
 
-/* ===== HOSPITAL ===== */
+/* ================= HOSPITAL ================= */
+function openHospital(){
+  showBox("hospital");
+  document.getElementById("hospital").innerHTML=`
+    <b>Hastane</b>
+    <button onclick="heal()">Tedavi Ol</button>
+  `;
+}
+
 async function heal(){
-  const { data } = await sb.rpc("hospital_heal", {
+  const { data } = await sb.rpc("hospital_heal",{
     p_telegram_id: TELEGRAM_ID
   });
-
-  showResult(data?.error ? data.error : "İyileştirildin");
+  showResult(data?.error ?? "İyileştirildin", !!data?.error);
   loadPlayer();
 }
 
-/* ===== RESULT ===== */
-function showResult(msg){
-  document.getElementById("result").classList.remove("hidden");
-  document.getElementById("result").innerHTML =
-    msg.includes("error") ? `<span class="error">${msg}</span>` :
-    `<span class="success">${msg}</span>`;
-}
-
-/* ===== STATIC MENUS ===== */
-document.getElementById("weapons").innerHTML = `
-<h3>🔫 Silah Kaçakçısı</h3>
-<button onclick="buy(30)">Tabanca</button>
-<button onclick="buy(31)">Pompalı</button>
-<button onclick="buy(32)">AK-47</button>
-`;
-
-document.getElementById("nightlife").innerHTML = `
-<h3>🌃 Gece Kulübü</h3>
-<button onclick="buy(10)">Bira</button>
-<button onclick="buy(11)">Votka</button>
-
-<h3>☕ Coffee Shop</h3>
-<button onclick="buy(20)">Ot</button>
-<button onclick="buy(21)">Mantar</button>
-`;
-
-document.getElementById("hospital").innerHTML =
-  `<button onclick="heal()">Tedavi Ol</button>`;
-
-/* ===== INIT ===== */
+/* ================= INIT ================= */
 loadPlayer();
-loadMissions();
 </script>
 
 </body>
