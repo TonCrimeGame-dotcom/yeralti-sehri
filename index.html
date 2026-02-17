@@ -74,11 +74,8 @@ async function loadMissions(){
   showBox("missions");
   const box = document.getElementById("missions");
   box.innerHTML="<b>💣 Görevler</b>";
-
   const { data } = await sb.from("missions").select("*").eq("active",true);
-  if(!data || data.length===0){
-    box.innerHTML+="<p>Görev yok</p>"; return;
-  }
+  if(!data || data.length===0){ box.innerHTML+="<p>Görev yok</p>"; return; }
   data.forEach(m=>{
     box.innerHTML+=`
       <button onclick="doMission(${m.id})">
@@ -127,48 +124,39 @@ function openNightlife(){
   `;
 }
 
-/* ---- Gece Kulübü ---- */
-function openClub(){
-  showBox("nightlife");
-  let html="<b>🍸 Gece Kulübü</b>";
-  for(let i=1;i<=30;i++){
-    html+=`<button onclick="buy(${100+i})">🍷 Alkol #${i} – ${10+i} | +Enerji</button>`;
-  }
-  html+=`<button onclick="openNightlife()">⬅ Geri</button>`;
-  document.getElementById("nightlife").innerHTML=html;
-}
-
-/* ---- Coffee Shop ---- */
-function openCoffee(){
-  showBox("nightlife");
-  let html="<b>☕ Coffee Shop</b>";
-  const drugs=["Mantar","Çizik","Pembe Toz","Kristal","Sarı Hap","Mor Sis"];
-  drugs.forEach((d,i)=>{
-    html+=`<button onclick="buy(${200+i})">💊 ${d} – ${30+i*5}</button>`;
-  });
-  html+=`<button onclick="openNightlife()">⬅ Geri</button>`;
-  document.getElementById("nightlife").innerHTML=html;
-}
-
-/* ---- Genel Ev (SON EKLENTİ GERİ GELDİ) ---- */
-const brothel=[
-  {id:301,name:"Mia Khalite",price:40},
-  {id:302,name:"Lana Rhoadsen",price:42},
-  {id:303,name:"Abella Deyne",price:45},
-  {id:304,name:"Eva Elfiee",price:50},
-  {id:305,name:"Luna & Lina Twinz",price:80}
+/* ================= GENEL EV – 50 KİŞİ ================= */
+const brothel = [
+  /* 35 Kadın */
+  ...Array.from({length:35},(_,i)=>({
+    id:500+i,
+    name:`Kadın #${i+1}`,
+    price:30 + i
+  })),
+  /* 10 Erkek */
+  ...Array.from({length:10},(_,i)=>({
+    id:600+i,
+    name:`Erkek #${i+1}`,
+    price:35 + i
+  })),
+  /* 5 İkiz */
+  ...Array.from({length:5},(_,i)=>({
+    id:700+i,
+    name:`İkizler #${i+1}`,
+    price:70 + i*5
+  }))
 ];
+
 function openBrothel(){
   showBox("nightlife");
-  let html="<b>💋 Genel Ev</b>";
+  let html="<b>💋 Genel Ev</b><small><br>Kadın / Erkek / İkiz</small><br>";
   brothel.forEach(p=>{
-    html+=`<button onclick="buy(${p.id})">${p.name} – ${p.price}</button>`;
+    html+=`<button onclick="buy(${p.id})">${p.name} – ${p.price} YTon</button>`;
   });
   html+=`<button onclick="openNightlife()">⬅ Geri</button>`;
   document.getElementById("nightlife").innerHTML=html;
 }
 
-/* ================= SİLAH KAÇAKÇISI ================= */
+/* ================= SİLAH ================= */
 function openWeapons(){
   showBox("weapons");
   document.getElementById("weapons").innerHTML=`
