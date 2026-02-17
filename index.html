@@ -1,63 +1,39 @@
 <!DOCTYPE html>
 <html lang="tr">
 <head>
-  <meta charset="UTF-8" />
-  <title>Yeraltı Şehri</title>
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+<meta charset="UTF-8">
+<title>Yeraltı Şehri</title>
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
 
-  <script src="https://unpkg.com/@supabase/supabase-js@2"></script>
+<script src="https://unpkg.com/@supabase/supabase-js@2"></script>
 
-  <style>
-    body {
-      background:#0b0b0b;
-      color:#fff;
-      font-family:Arial, sans-serif;
-      margin:0;
-      padding:20px;
-    }
-    h1 { text-align:center; }
-    button {
-      width:100%;
-      padding:14px;
-      margin:8px 0;
-      background:#1e1e1e;
-      color:#fff;
-      border:none;
-      border-radius:6px;
-      font-size:16px;
-    }
-    button:hover { background:#333; }
-    .box {
-      background:#151515;
-      padding:15px;
-      border-radius:8px;
-      margin-bottom:15px;
-    }
-    .hidden { display:none; }
-    .success { color:#4caf50; }
-    .error { color:#f44336; }
-  </style>
+<style>
+body { background:#0b0b0b; color:#fff; font-family:Arial; padding:20px }
+h1{text-align:center}
+button{width:100%;padding:14px;margin:8px 0;background:#1e1e1e;color:#fff;border:none;border-radius:6px;font-size:16px}
+.box{background:#151515;padding:15px;border-radius:8px;margin-top:15px}
+.hidden{display:none}
+.success{color:#4caf50}
+.error{color:#f44336}
+</style>
 </head>
 
 <body>
 
 <h1>🔥 Yeraltı Şehri</h1>
 
-<div class="box" id="playerInfo">
-  Yükleniyor...
-</div>
+<div class="box" id="playerInfo">Yükleniyor...</div>
 
-<button onclick="show('missions')">🧨 Görevler</button>
+<button onclick="show('missions')">💣 Görevler</button>
 <button onclick="show('shop')">🛒 Satın Alım</button>
-<button onclick="heal()">🏥 Hastane</button>
+<button onclick="hospital()">🏥 Hastane</button>
 
 <div id="missions" class="box hidden"></div>
 <div id="shop" class="box hidden"></div>
-
 <div id="result" class="box hidden"></div>
 
 <script>
-/* ================= SUPABASE ================= */
+// ================== SUPABASE ==================
 const supabase = supabase.createClient(
   "https://hwhscuyudwphnsipibpy.supabase.co",
   "sb_publishable_dItLcV8z83CvDWuR8nTabA_ImTHGETu"
@@ -65,105 +41,125 @@ const supabase = supabase.createClient(
 
 const TELEGRAM_ID = "162154220";
 
-/* ================= UI ================= */
-function show(id) {
-  document.querySelectorAll('.box').forEach(b => b.classList.add("hidden"));
-  document.getElementById(id).classList.remove("hidden");
+// ================== UI ==================
+function show(id){
+  document.querySelectorAll('.box').forEach(b=>b.classList.add('hidden'));
+  document.getElementById(id).classList.remove('hidden');
 }
 
-/* ================= PLAYER ================= */
-async function loadPlayer() {
-  const { data } = await supabase
+// ================== PLAYER ==================
+async function loadPlayer(){
+  const { data, error } = await supabase
     .from("players")
     .select("*")
     .eq("telegram_id", TELEGRAM_ID)
     .single();
+
+  if(error){
+    document.getElementById("playerInfo").innerHTML="Oyuncu bulunamadı";
+    return;
+  }
 
   document.getElementById("playerInfo").innerHTML = `
     <b>Karakter:</b> ${data.character}<br>
     <b>Level:</b> ${data.level}<br>
     <b>XP:</b> ${data.xp}<br>
     <b>Enerji:</b> ${data.energy}<br>
-    <b>yTon:</b> ${data.yton}
+    <b>YTon:</b> ${data.yton}
   `;
 }
 
-/* ================= MISSIONS ================= */
-async function loadMissions() {
+// ================== MISSIONS ==================
+async function loadMissions(){
+  show("missions");
+  const box = document.getElementById("missions");
+  box.innerHTML = "Görevler yükleniyor...";
+
   const { data } = await supabase
     .from("missions")
     .select("*")
     .eq("active", true);
 
-  let html = "<h3>Görevler</h3>";
-  data.forEach(m => {
-    html += `
+  box.innerHTML = "<h3>Görevler</h3>";
+
+  data.forEach(m=>{
+    box.innerHTML += `
       <button onclick="doMission(${m.id})">
         ${m.name}<br>
-        ⚡ ${m.energy_cost} | 🎯 Risk %${m.risk_percent} | 💰 ${m.yton_reward}
+        Enerji: ${m.energy_cost} | Risk: %${m.risk_percent} | Ödül: ${m.yton_reward}
       </button>
     `;
   });
-  document.getElementById("missions").innerHTML = html;
 }
 
-/* ================= DO MISSION ================= */
-async function doMission(id) {
+async function doMission(id){
   const { data } = await supabase.rpc("do_mission", {
     p_telegram_id: TELEGRAM_ID,
     p_mission_id: id
   });
 
-  showResult(data);
+  show("result");
+  document.getElementById("result").innerHTML =
+    data?.error
+      ? `<div class="error">${data.error}</div>`
+      : `<div class="success">Görev tamamlandı</div>`;
+
   loadPlayer();
 }
 
-/* ================= SHOP ================= */
-async function loadShop() {
+// ================== SHOP ==================
+async function loadShop(){
+  show("shop");
+  const box = document.getElementById("shop");
+  box.innerHTML = "<h3>Satın Alım</h3>";
+
   const items = [
-    { id:1, name:"🍺 Alkol (50 yTon)" },
-    { id:2, name:"🔫 Silah (200 yTon)" },
-    { id:3, name:"💊 Uyuşturucu (150 yTon)" }
+    {id:1,name:"Tabanca",price:50},
+    {id:2,name:"Alkol",price:10},
+    {id:3,name:"Uyuşturucu",price:30}
   ];
 
-  let html = "<h3>Satın Alım</h3>";
-  items.forEach(i => {
-    html += `<button onclick="buy(${i.id})">${i.name}</button>`;
+  items.forEach(i=>{
+    box.innerHTML += `
+      <button onclick="buy(${i.id})">
+        ${i.name} - ${i.price} YTon
+      </button>
+    `;
   });
-  document.getElementById("shop").innerHTML = html;
 }
 
-async function buy(id) {
+async function buy(id){
   const { data } = await supabase.rpc("buy_item", {
     p_telegram_id: TELEGRAM_ID,
     p_item_id: id
   });
 
-  showResult(data);
+  show("result");
+  document.getElementById("result").innerHTML =
+    data?.error
+      ? `<div class="error">${data.error}</div>`
+      : `<div class="success">Satın alındı</div>`;
+
   loadPlayer();
 }
 
-/* ================= HOSPITAL ================= */
-async function heal() {
+// ================== HOSPITAL ==================
+async function hospital(){
   const { data } = await supabase.rpc("hospital_heal", {
     p_telegram_id: TELEGRAM_ID
   });
 
-  showResult(data);
+  show("result");
+  document.getElementById("result").innerHTML =
+    data?.error
+      ? `<div class="error">${data.error}</div>`
+      : `<div class="success">İyileştirildin</div>`;
+
   loadPlayer();
 }
 
-/* ================= RESULT ================= */
-function showResult(res) {
-  const box = document.getElementById("result");
-  box.classList.remove("hidden");
-  box.innerHTML = JSON.stringify(res, null, 2);
-}
-
-/* ================= INIT ================= */
+// ================== INIT ==================
 loadPlayer();
-loadMissions();
-loadShop();
 </script>
 
 </body>
