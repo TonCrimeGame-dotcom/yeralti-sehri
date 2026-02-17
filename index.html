@@ -4,7 +4,6 @@
 <meta charset="UTF-8">
 <title>Yeraltı Şehri</title>
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-
 <script src="https://unpkg.com/@supabase/supabase-js@2"></script>
 
 <style>
@@ -26,16 +25,10 @@ small{color:#aaa}
 
 <div id="playerInfo" class="box">Yükleniyor...</div>
 
-<button onclick="showBox('missions')">💣 Görevler</button>
-<button onclick="showBox('shop')">🛒 Satın Alım</button>
-<button onclick="hospital()">🏥 Hastane</button>
 <button onclick="openNightlife()">🌃 Gece Hayatı</button>
-<button onclick="openWeapons()">🔫 Silah Kaçakçısı</button>
+<button onclick="hospital()">🏥 Hastane</button>
 
-<div id="missions" class="box hidden"></div>
-<div id="shop" class="box hidden"></div>
 <div id="nightlife" class="box hidden"></div>
-<div id="weapons" class="box hidden"></div>
 <div id="result" class="box hidden"></div>
 
 <script>
@@ -46,52 +39,48 @@ const sb = supabase.createClient(
 );
 const TELEGRAM_ID = "162154220";
 
-/* ================= GECE KULÜBÜ ALKOLLER ================= */
-const clubDrinks = [
-  {id:101,name:"Bira",price:10,effect:"+5 Enerji"},
-  {id:102,name:"Şarap",price:15,effect:"+8 Enerji"},
-  {id:103,name:"Votka",price:20,effect:"+10 Enerji"},
-  {id:104,name:"Viski",price:25,effect:"+12 Enerji"},
-  {id:105,name:"Tekila",price:22,effect:"+10 Enerji"},
-  {id:106,name:"Cin",price:18,effect:"+7 Enerji"},
-  {id:107,name:"Rom",price:20,effect:"+9 Enerji"},
-  {id:108,name:"Şampanya",price:30,effect:"+5 Enerji + Prestij"},
-  {id:109,name:"Likör",price:16,effect:"+6 Enerji"},
-  {id:110,name:"Absinthe",price:40,effect:"+15 Enerji (Risk ↑)"},
-  {id:111,name:"Martini",price:22,effect:"+8 Enerji"},
-  {id:112,name:"Mojito",price:18,effect:"+6 Enerji"},
-  {id:113,name:"Bloody Mary",price:24,effect:"+9 Enerji"},
-  {id:114,name:"Whiskey Sour",price:26,effect:"+10 Enerji"},
-  {id:115,name:"Negroni",price:28,effect:"+10 Enerji (Risk ↑)"},
-  {id:116,name:"Long Island",price:35,effect:"+18 Enerji (Risk ↑↑)"},
-  {id:117,name:"Sake",price:27,effect:"+9 Enerji"},
-  {id:118,name:"Brandy",price:23,effect:"+8 Enerji"},
-  {id:119,name:"Cognac",price:32,effect:"+11 Enerji"},
-  {id:120,name:"Rakı",price:25,effect:"+10 Enerji (Risk ↑)"}
-];
+/* ================= GENEL EV KİŞİLER ================= */
+const brothelPeople = [
+  // 👩 Kadınlar (20)
+  {id:301,name:"Mia Khalite",price:40,effect:"+12 Enerji | Risk %5"},
+  {id:302,name:"Lana Rhoadsen",price:42,effect:"+13 Enerji | Risk %6"},
+  {id:303,name:"Abella Deyne",price:45,effect:"+14 Enerji | Risk %6"},
+  {id:304,name:"Riley Reidon",price:44,effect:"+13 Enerji | Risk %5"},
+  {id:305,name:"Angela Whytey",price:46,effect:"+14 Enerji | Risk %7"},
+  {id:306,name:"Sasha Greylin",price:48,effect:"+15 Enerji | Risk %7"},
+  {id:307,name:"Megan Rainy",price:41,effect:"+12 Enerji | Risk %5"},
+  {id:308,name:"Jenna Foxer",price:43,effect:"+13 Enerji | Risk %6"},
+  {id:309,name:"Brandi Lovex",price:47,effect:"+14 Enerji | Risk %7"},
+  {id:310,name:"Eva Elfiee",price:50,effect:"+16 Enerji | Risk %8"},
+  {id:311,name:"Nina Northy",price:44,effect:"+13 Enerji | Risk %6"},
+  {id:312,name:"Lexi Lorex",price:46,effect:"+14 Enerji | Risk %7"},
+  {id:313,name:"Mila Azulay",price:49,effect:"+15 Enerji | Risk %8"},
+  {id:314,name:"Emily Willisn",price:45,effect:"+14 Enerji | Risk %6"},
+  {id:315,name:"Violet Myerss",price:48,effect:"+15 Enerji | Risk %7"},
+  {id:316,name:"Elsa Jeannex",price:47,effect:"+14 Enerji | Risk %7"},
+  {id:317,name:"Adriana Chekx",price:50,effect:"+16 Enerji | Risk %8"},
+  {id:318,name:"Kendra Lusty",price:52,effect:"+17 Enerji | Risk %9"},
+  {id:319,name:"Sky Brii",price:46,effect:"+14 Enerji | Risk %6"},
+  {id:320,name:"Aria Luxen",price:49,effect:"+15 Enerji | Risk %8"},
 
-/* ================= COFFEE SHOP UYUŞTURUCULAR ================= */
-const drugs = [
-  {id:201,name:"Ot",price:30,effect:"+5 XP"},
-  {id:202,name:"Mantar",price:40,effect:"+8 XP (Risk ↑)"},
-  {id:203,name:"Çizik",price:35,effect:"+6 XP"},
-  {id:204,name:"Pembe Toz",price:50,effect:"+12 XP (Risk ↑)"},
-  {id:205,name:"Beyaz Taş",price:55,effect:"+14 XP (Risk ↑↑)"},
-  {id:206,name:"Siyah Kristal",price:60,effect:"+15 XP (Risk ↑↑)"},
-  {id:207,name:"Sarı Hap",price:45,effect:"+10 XP"},
-  {id:208,name:"Mavi Hap",price:48,effect:"+11 XP"},
-  {id:209,name:"Asit",price:70,effect:"+18 XP (Risk ↑↑)"},
-  {id:210,name:"Bonzai",price:25,effect:"+4 XP (Risk ↑)"},
-  {id:211,name:"Kırmızı Şeker",price:38,effect:"+7 XP"},
-  {id:212,name:"Yeşil Çamur",price:42,effect:"+9 XP"},
-  {id:213,name:"Gece Tozu",price:65,effect:"+16 XP (Risk ↑↑)"},
-  {id:214,name:"Sokak Karışımı",price:33,effect:"+6 XP"},
-  {id:215,name:"Mor Sis",price:58,effect:"+13 XP"},
-  {id:216,name:"Beyin Yakıcı",price:75,effect:"+20 XP (Risk ↑↑↑)"},
-  {id:217,name:"Çakma MD",price:46,effect:"+10 XP"},
-  {id:218,name:"Kafa Açan",price:52,effect:"+12 XP"},
-  {id:219,name:"Hızlandırıcı",price:60,effect:"+14 XP"},
-  {id:220,name:"Yeraltı Özel",price:80,effect:"+22 XP (Risk ↑↑↑)"}
+  // 👨 Erkekler (10)
+  {id:321,name:"Johnny Sinsy",price:35,effect:"+10 Enerji | Risk %4"},
+  {id:322,name:"Manuel Ferron",price:36,effect:"+10 Enerji | Risk %4"},
+  {id:323,name:"Rocco Steell",price:38,effect:"+11 Enerji | Risk %5"},
+  {id:324,name:"Jordi El Ninox",price:37,effect:"+10 Enerji | Risk %4"},
+  {id:325,name:"Nacho Vidalx",price:39,effect:"+11 Enerji | Risk %5"},
+  {id:326,name:"Markus Dupreex",price:36,effect:"+10 Enerji | Risk %4"},
+  {id:327,name:"Alex Legendz",price:40,effect:"+12 Enerji | Risk %5"},
+  {id:328,name:"Tommy Gunnr",price:38,effect:"+11 Enerji | Risk %5"},
+  {id:329,name:"Ramon Nomarx",price:37,effect:"+10 Enerji | Risk %4"},
+  {id:330,name:"James Deenx",price:39,effect:"+11 Enerji | Risk %5"},
+
+  // 👯 İkizler (5 çift)
+  {id:331,name:"Luna & Lina Twinz",price:80,effect:"+22 Enerji | Risk %12"},
+  {id:332,name:"Nora & Nera Twinz",price:78,effect:"+21 Enerji | Risk %11"},
+  {id:333,name:"Mila & Mina Twinz",price:82,effect:"+23 Enerji | Risk %13"},
+  {id:334,name:"Sara & Sera Twinz",price:79,effect:"+21 Enerji | Risk %11"},
+  {id:335,name:"Vera & Vira Twinz",price:85,effect:"+24 Enerji | Risk %14"}
 ];
 
 /* ================= UI ================= */
@@ -99,10 +88,9 @@ function showBox(id){
   document.querySelectorAll(".box").forEach(b=>b.classList.add("hidden"));
   document.getElementById(id).classList.remove("hidden");
 }
-function showResult(msg,isErr=false){
+function showResult(msg){
   showBox("result");
-  document.getElementById("result").innerHTML =
-    `<span class="${isErr?'error':'success'}">${msg}</span>`;
+  document.getElementById("result").innerHTML = `<span class="success">${msg}</span>`;
 }
 
 /* ================= PLAYER ================= */
@@ -111,76 +99,37 @@ async function loadPlayer(){
     .select("*")
     .eq("telegram_id", TELEGRAM_ID)
     .single();
-  if(!data){ document.getElementById("playerInfo").innerHTML="Oyuncu yok"; return; }
-  document.getElementById("playerInfo").innerHTML = `
-    <b>Karakter:</b> ${data.character}<br>
-    <b>Level:</b> ${data.level}<br>
-    <b>XP:</b> ${data.xp}<br>
-    <b>Enerji:</b> ${data.energy}<br>
-    <b>YTon:</b> ${data.yton}
+  if(!data) return;
+  document.getElementById("playerInfo").innerHTML=`
+    <b>Enerji:</b> ${data.energy} | <b>YTon:</b> ${data.yton}
   `;
 }
 
 /* ================= GECE HAYATI ================= */
 function openNightlife(){
   showBox("nightlife");
-  document.getElementById("nightlife").innerHTML=`
-    <b>🌃 Gece Hayatı</b>
-    <button onclick="openClub()">🍸 Gece Kulübü</button>
-    <button onclick="openCoffee()">☕ Coffee Shop</button>
-    <button onclick="openBrothel()">💋 Genel Ev</button>
-  `;
-}
-
-function openClub(){
-  showBox("nightlife");
-  let html=`<b>🍸 Gece Kulübü</b><br><br>`;
-  clubDrinks.forEach(d=>{
-    html+=`<button onclick="buy(${d.id})">${d.name} – ${d.price} YTon<br><small>${d.effect}</small></button>`;
+  let html = `<b>💋 Genel Ev</b><br><br>`;
+  brothelPeople.forEach(p=>{
+    html += `
+      <button onclick="buy(${p.id})">
+        ${p.name} – ${p.price} YTon<br>
+        <small>${p.effect}</small>
+      </button>
+    `;
   });
-  html+=`<button onclick="openNightlife()">⬅ Geri</button>`;
-  document.getElementById("nightlife").innerHTML=html;
-}
-
-function openCoffee(){
-  showBox("nightlife");
-  let html=`<b>☕ Coffee Shop</b><br><br>`;
-  drugs.forEach(d=>{
-    html+=`<button onclick="buy(${d.id})">${d.name} – ${d.price} YTon<br><small>${d.effect}</small></button>`;
-  });
-  html+=`<button onclick="openNightlife()">⬅ Geri</button>`;
-  document.getElementById("nightlife").innerHTML=html;
-}
-
-function openBrothel(){
-  showBox("nightlife");
-  document.getElementById("nightlife").innerHTML=`
-    <b>💋 Genel Ev</b>
-    <button onclick="hospital()">❤️ Hizmet Al – 25</button>
-    <button onclick="openNightlife()">⬅ Geri</button>
-  `;
+  document.getElementById("nightlife").innerHTML = html;
 }
 
 /* ================= SATIN ALIM / HASTANE ================= */
 async function buy(id){
-  const { data } = await sb.rpc("buy_item",{p_telegram_id: TELEGRAM_ID,p_item_id: id});
-  showResult(data?.error ?? "Satın alındı", !!data?.error);
+  await sb.rpc("buy_item",{p_telegram_id:TELEGRAM_ID,p_item_id:id});
+  showResult("Hizmet alındı");
   loadPlayer();
 }
 async function hospital(){
-  const { data } = await sb.rpc("hospital_heal",{p_telegram_id: TELEGRAM_ID});
-  showResult(data?.error ?? "İyileştirildin", !!data?.error);
+  await sb.rpc("hospital_heal",{p_telegram_id:TELEGRAM_ID});
+  showResult("İyileştirildin");
   loadPlayer();
-}
-
-/* ================= SİLAH KAÇAKÇISI ================= */
-function openWeapons(){
-  showBox("weapons");
-  document.getElementById("weapons").innerHTML=`
-    <b>🔫 Silah Kaçakçısı</b>
-    <button onclick="buy(31)">🔫 Tabanca – 50</button>
-    <button onclick="buy(32)">💣 Bıçak – 20</button>
-  `;
 }
 
 /* ================= INIT ================= */
