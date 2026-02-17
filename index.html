@@ -8,30 +8,11 @@
 <script src="https://unpkg.com/@supabase/supabase-js@2"></script>
 
 <style>
-body{
-  background:#0b0b0b;
-  color:#fff;
-  font-family:Arial,sans-serif;
-  padding:20px;
-}
+body{background:#0b0b0b;color:#fff;font-family:Arial,sans-serif;padding:20px}
 h1{text-align:center}
-button{
-  width:100%;
-  padding:14px;
-  margin:8px 0;
-  background:#1a1a1a;
-  color:#fff;
-  border:none;
-  border-radius:8px;
-  font-size:16px;
-}
+button{width:100%;padding:14px;margin:8px 0;background:#1a1a1a;color:#fff;border:none;border-radius:8px;font-size:16px}
 button:hover{background:#333}
-.box{
-  background:#151515;
-  padding:15px;
-  border-radius:8px;
-  margin-bottom:15px;
-}
+.box{background:#151515;padding:15px;border-radius:8px;margin-bottom:15px}
 .hidden{display:none}
 .success{color:#4caf50}
 .error{color:#f44336}
@@ -63,10 +44,9 @@ const sb = supabase.createClient(
   "https://hwhscuyudwphnsipibpy.supabase.co",
   "sb_publishable_dItLcV8z83CvDWuR8nTabA_ImTHGETu"
 );
-
 const TELEGRAM_ID = "162154220";
 
-/* ================= GECE KULÜBÜ ALKOLLERI ================= */
+/* ================= GECE KULÜBÜ ALKOLLER ================= */
 const clubDrinks = [
   {id:101,name:"Bira",price:10,effect:"+5 Enerji"},
   {id:102,name:"Şarap",price:15,effect:"+8 Enerji"},
@@ -87,17 +67,31 @@ const clubDrinks = [
   {id:117,name:"Sake",price:27,effect:"+9 Enerji"},
   {id:118,name:"Brandy",price:23,effect:"+8 Enerji"},
   {id:119,name:"Cognac",price:32,effect:"+11 Enerji"},
-  {id:120,name:"Arak",price:21,effect:"+7 Enerji"},
-  {id:121,name:"Rakı",price:25,effect:"+10 Enerji (Risk ↑)"},
-  {id:122,name:"Pastis",price:24,effect:"+9 Enerji"},
-  {id:123,name:"Ouzo",price:24,effect:"+9 Enerji"},
-  {id:124,name:"Calvados",price:29,effect:"+10 Enerji"},
-  {id:125,name:"Grappa",price:26,effect:"+9 Enerji"},
-  {id:126,name:"Baileys",price:20,effect:"+6 Enerji"},
-  {id:127,name:"Jägermeister",price:28,effect:"+11 Enerji"},
-  {id:128,name:"Sambuca",price:22,effect:"+8 Enerji"},
-  {id:129,name:"Konyak XO",price:45,effect:"+16 Enerji"},
-  {id:130,name:"Ev Yapımı Sert",price:15,effect:"+12 Enerji (Risk ↑↑)"}
+  {id:120,name:"Rakı",price:25,effect:"+10 Enerji (Risk ↑)"}
+];
+
+/* ================= COFFEE SHOP UYUŞTURUCULAR ================= */
+const drugs = [
+  {id:201,name:"Ot",price:30,effect:"+5 XP"},
+  {id:202,name:"Mantar",price:40,effect:"+8 XP (Risk ↑)"},
+  {id:203,name:"Çizik",price:35,effect:"+6 XP"},
+  {id:204,name:"Pembe Toz",price:50,effect:"+12 XP (Risk ↑)"},
+  {id:205,name:"Beyaz Taş",price:55,effect:"+14 XP (Risk ↑↑)"},
+  {id:206,name:"Siyah Kristal",price:60,effect:"+15 XP (Risk ↑↑)"},
+  {id:207,name:"Sarı Hap",price:45,effect:"+10 XP"},
+  {id:208,name:"Mavi Hap",price:48,effect:"+11 XP"},
+  {id:209,name:"Asit",price:70,effect:"+18 XP (Risk ↑↑)"},
+  {id:210,name:"Bonzai",price:25,effect:"+4 XP (Risk ↑)"},
+  {id:211,name:"Kırmızı Şeker",price:38,effect:"+7 XP"},
+  {id:212,name:"Yeşil Çamur",price:42,effect:"+9 XP"},
+  {id:213,name:"Gece Tozu",price:65,effect:"+16 XP (Risk ↑↑)"},
+  {id:214,name:"Sokak Karışımı",price:33,effect:"+6 XP"},
+  {id:215,name:"Mor Sis",price:58,effect:"+13 XP"},
+  {id:216,name:"Beyin Yakıcı",price:75,effect:"+20 XP (Risk ↑↑↑)"},
+  {id:217,name:"Çakma MD",price:46,effect:"+10 XP"},
+  {id:218,name:"Kafa Açan",price:52,effect:"+12 XP"},
+  {id:219,name:"Hızlandırıcı",price:60,effect:"+14 XP"},
+  {id:220,name:"Yeraltı Özel",price:80,effect:"+22 XP (Risk ↑↑↑)"}
 ];
 
 /* ================= UI ================= */
@@ -117,10 +111,7 @@ async function loadPlayer(){
     .select("*")
     .eq("telegram_id", TELEGRAM_ID)
     .single();
-  if(!data){
-    document.getElementById("playerInfo").innerHTML="Oyuncu yok";
-    return;
-  }
+  if(!data){ document.getElementById("playerInfo").innerHTML="Oyuncu yok"; return; }
   document.getElementById("playerInfo").innerHTML = `
     <b>Karakter:</b> ${data.character}<br>
     <b>Level:</b> ${data.level}<br>
@@ -128,37 +119,6 @@ async function loadPlayer(){
     <b>Enerji:</b> ${data.energy}<br>
     <b>YTon:</b> ${data.yton}
   `;
-}
-
-/* ================= GÖREVLER ================= */
-async function loadMissions(){
-  showBox("missions");
-  const box=document.getElementById("missions");
-  box.innerHTML="<b>💣 Görevler</b>";
-  const { data } = await sb.from("missions").select("*").eq("active", true);
-  if(!data || data.length===0){ box.innerHTML+="<p>Görev yok</p>"; return; }
-  data.forEach(m=>{
-    box.innerHTML+=`<button onclick="doMission(${m.id})">${m.name} | Enerji ${m.energy_cost}</button>`;
-  });
-}
-async function doMission(id){
-  const { data } = await sb.rpc("do_mission",{p_telegram_id: TELEGRAM_ID,p_mission_id: id});
-  showResult(data?.error ?? "Görev tamamlandı", !!data?.error);
-  loadPlayer();
-}
-
-/* ================= SATIN ALIM ================= */
-async function buy(id){
-  const { data } = await sb.rpc("buy_item",{p_telegram_id: TELEGRAM_ID,p_item_id: id});
-  showResult(data?.error ?? "Satın alındı", !!data?.error);
-  loadPlayer();
-}
-
-/* ================= HASTANE ================= */
-async function hospital(){
-  const { data } = await sb.rpc("hospital_heal",{p_telegram_id: TELEGRAM_ID});
-  showResult(data?.error ?? "İyileştirildin", !!data?.error);
-  loadPlayer();
 }
 
 /* ================= GECE HAYATI ================= */
@@ -174,27 +134,22 @@ function openNightlife(){
 
 function openClub(){
   showBox("nightlife");
-  let html = `<b>🍸 Gece Kulübü</b><br><small>Enerji kazan, risk al</small><br><br>`;
+  let html=`<b>🍸 Gece Kulübü</b><br><br>`;
   clubDrinks.forEach(d=>{
-    html += `
-      <button onclick="buy(${d.id})">
-        ${d.name} – ${d.price} YTon<br>
-        <small>${d.effect}</small>
-      </button>
-    `;
+    html+=`<button onclick="buy(${d.id})">${d.name} – ${d.price} YTon<br><small>${d.effect}</small></button>`;
   });
-  html += `<button onclick="openNightlife()">⬅ Geri</button>`;
-  document.getElementById("nightlife").innerHTML = html;
+  html+=`<button onclick="openNightlife()">⬅ Geri</button>`;
+  document.getElementById("nightlife").innerHTML=html;
 }
 
 function openCoffee(){
   showBox("nightlife");
-  document.getElementById("nightlife").innerHTML=`
-    <b>☕ Coffee Shop</b>
-    <button onclick="buy(21)">🌿 Ot – 30</button>
-    <button onclick="buy(22)">💊 Hap – 50</button>
-    <button onclick="openNightlife()">⬅ Geri</button>
-  `;
+  let html=`<b>☕ Coffee Shop</b><br><br>`;
+  drugs.forEach(d=>{
+    html+=`<button onclick="buy(${d.id})">${d.name} – ${d.price} YTon<br><small>${d.effect}</small></button>`;
+  });
+  html+=`<button onclick="openNightlife()">⬅ Geri</button>`;
+  document.getElementById("nightlife").innerHTML=html;
 }
 
 function openBrothel(){
@@ -204,6 +159,18 @@ function openBrothel(){
     <button onclick="hospital()">❤️ Hizmet Al – 25</button>
     <button onclick="openNightlife()">⬅ Geri</button>
   `;
+}
+
+/* ================= SATIN ALIM / HASTANE ================= */
+async function buy(id){
+  const { data } = await sb.rpc("buy_item",{p_telegram_id: TELEGRAM_ID,p_item_id: id});
+  showResult(data?.error ?? "Satın alındı", !!data?.error);
+  loadPlayer();
+}
+async function hospital(){
+  const { data } = await sb.rpc("hospital_heal",{p_telegram_id: TELEGRAM_ID});
+  showResult(data?.error ?? "İyileştirildin", !!data?.error);
+  loadPlayer();
 }
 
 /* ================= SİLAH KAÇAKÇISI ================= */
@@ -218,7 +185,6 @@ function openWeapons(){
 
 /* ================= INIT ================= */
 loadPlayer();
-loadMissions();
 </script>
 
 </body>
