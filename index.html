@@ -2,7 +2,7 @@
 <html lang="tr">
 <head>
 <meta charset="UTF-8">
-<title>Yeraltı Şehri</title>
+<title>🔥 Yeraltı Şehri</title>
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <script src="https://unpkg.com/@supabase/supabase-js@2"></script>
 
@@ -13,7 +13,8 @@ button{width:100%;padding:14px;margin:8px 0;background:#1a1a1a;color:#fff;border
 button:hover{background:#333}
 .box{background:#151515;padding:15px;border-radius:8px;margin-bottom:15px}
 .hidden{display:none}
-small{display:block;opacity:.7;margin-bottom:8px}
+small{opacity:.7;display:block}
+.locked{opacity:.4}
 </style>
 </head>
 
@@ -24,13 +25,12 @@ small{display:block;opacity:.7;margin-bottom:8px}
 <div id="playerInfo" class="box">Yükleniyor...</div>
 
 <button onclick="loadMissions()">💣 Görevler</button>
-<button onclick="hospital()">🏥 Hastane</button>
+<button onclick="openPvP()">⚔️ PvP</button>
 <button onclick="openNightlife()">🌃 Gece Hayatı</button>
 <button onclick="openWeapons()">🔫 Silah Kaçakçısı</button>
+<button onclick="hospital()">🏥 Hastane</button>
 
-<div id="missions" class="box hidden"></div>
-<div id="nightlife" class="box hidden"></div>
-<div id="weapons" class="box hidden"></div>
+<div id="content" class="box hidden"></div>
 <div id="result" class="box hidden"></div>
 
 <script>
@@ -39,46 +39,38 @@ const sb = supabase.createClient(
  "https://hwhscuyudwphnsipibpy.supabase.co",
  "sb_publishable_dItLcV8z83CvDWuR8nTabA_ImTHGETu"
 );
-const TELEGRAM_ID="162154220";
+const TELEGRAM_ID = "162154220";
 
 /* ================= MODIFIERS ================= */
 let modifiers = JSON.parse(localStorage.getItem("modifiers")) || {
- success: 0,
- risk: 0,
- energyBonus: 0,
- addiction: 0,
- weaponDurability: 0
+ success:0, risk:0, energy:0
 };
-function saveModifiers(){
- localStorage.setItem("modifiers",JSON.stringify(modifiers));
-}
+const saveMod=()=>localStorage.setItem("modifiers",JSON.stringify(modifiers));
 
 /* ================= UI ================= */
-function showBox(id){
- document.querySelectorAll(".box").forEach(b=>b.classList.add("hidden"));
- document.getElementById(id).classList.remove("hidden");
-}
-function showResult(msg){
+function show(msg){
  document.getElementById("result").innerHTML=msg;
- showBox("result");
+ document.getElementById("result").classList.remove("hidden");
  loadPlayer();
+}
+function showBox(html){
+ const c=document.getElementById("content");
+ c.innerHTML=html;
+ c.classList.remove("hidden");
 }
 
 /* ================= PLAYER ================= */
 async function loadPlayer(){
  const {data}=await sb.from("players")
-  .select("*").eq("telegram_id",TELEGRAM_ID).single();
+ .select("*").eq("telegram_id",TELEGRAM_ID).single();
  if(!data)return;
 
  document.getElementById("playerInfo").innerHTML=`
- Enerji: ${data.energy + modifiers.energyBonus} |
- YTon: ${data.yton}<br>
- <small>
- 🎯 Başarı: +${modifiers.success}% |
- ⚠️ Risk: ${modifiers.risk} |
- ☠️ Bağımlılık: ${modifiers.addiction} |
- 🔫 Silah: ${modifiers.weaponDurability}%
- </small>`;
+ <b>Level:</b> ${data.level} | <b>XP:</b> ${data.xp}<br>
+ <b>Enerji:</b> ${data.energy + modifiers.energy}<br>
+ <b>YTon:</b> ${data.yton}<br>
+ <small>Başarı +${modifiers.success}% | Risk ${modifiers.risk}</small>
+ `;
 }
 
 /* ================= BUY ================= */
@@ -87,155 +79,103 @@ async function buy(id){
   p_telegram_id:TELEGRAM_ID,
   p_item_id:id
  });
-
- if(!data?.error) applyItemEffect(id);
- showResult(data?.error || "Satın alındı");
+ if(!data?.error){ applyItem(id); }
+ show(data?.error || "Satın alındı");
 }
 
-/* ================= ITEM EFFECTS ================= */
-function applyItemEffect(id){
- if(id>=600 && id<=699){
-  modifiers.success += 5;
-  modifiers.risk = Math.max(0,modifiers.risk-2);
-  modifiers.weaponDurability = 100;
- }
- if(id>=100 && id<=129){
-  modifiers.energyBonus += 3;
-  modifiers.risk += 1;
- }
- if(id>=200 && id<=229){
-  modifiers.success += 4;
-  modifiers.risk += 2;
-  modifiers.addiction += 5;
- }
- if(id>=300 && id<=599){
-  modifiers.success += 6;
-  modifiers.energyBonus += 5;
-  modifiers.risk += 1;
- }
- saveModifiers();
+function applyItem(id){
+ if(id>=600){ modifiers.success+=5; modifiers.risk-=2; }
+ if(id>=100&&id<200){ modifiers.energy+=3; modifiers.risk+=1; }
+ if(id>=200&&id<300){ modifiers.success+=4; modifiers.risk+=2; }
+ if(id>=300){ modifiers.success+=6; modifiers.energy+=5; }
+ saveMod();
 }
 
-/* ================= GÖREVLER ================= */
+/* ================= MISSIONS ================= */
 async function loadMissions(){
- showBox("missions");
- const box=document.getElementById("missions");
- box.innerHTML="<b>💣 Görevler</b>";
-
  const {data}=await sb.from("missions").select("*").eq("active",true);
- if(!data||!data.length){
-  box.innerHTML+="<p>Aktif görev yok</p>";return;
- }
+ if(!data||!data.length){ showBox("Görev yok"); return; }
+
+ let h="<b>💣 Görevler</b>";
  data.forEach(m=>{
-  box.innerHTML+=`
-   <button onclick="doMission(${m.id})">${m.name} – Enerji ${m.energy_cost}</button>
-   <small>${m.description||"Riskli ama kazançlı"}</small>`;
+  h+=`
+  <button onclick="doMission(${m.id})">
+   ${m.name} – Enerji ${m.energy_cost}
+  </button>
+  <small>${m.description}</small>`;
  });
+ showBox(h);
 }
 
 async function doMission(id){
- let finalSuccess = 50 + modifiers.success - modifiers.addiction;
- let finalRisk = 20 + modifiers.risk + modifiers.addiction;
-
- if(modifiers.weaponDurability>0){
-  modifiers.weaponDurability -= 10;
- }else{
-  modifiers.success=Math.max(0,modifiers.success-5);
- }
-
- if(Math.random()*100>finalSuccess){
-  modifiers.risk+=2;
-  saveModifiers();
-  showResult("❌ Görev başarısız");
+ let chance=50+modifiers.success;
+ let roll=Math.random()*100;
+ if(roll>chance){
+  modifiers.success=Math.max(0,modifiers.success-2);
+  modifiers.risk+=1;
+  saveMod();
+  show("❌ Görev başarısız");
   return;
  }
-
  const {data}=await sb.rpc("do_mission",{
   p_telegram_id:TELEGRAM_ID,
   p_mission_id:id
  });
-
- if(finalRisk>40 && Math.random()*100<finalRisk){
-  modifiers={success:0,risk:0,energyBonus:0,addiction:0,weaponDurability:0};
-  saveModifiers();
-  showResult("🚨 Polis baskını! Her şey sıfırlandı");
-  return;
- }
-
- modifiers.addiction=Math.max(0,modifiers.addiction-2);
- saveModifiers();
- showResult(data?.error || "✅ Görev başarılı");
+ modifiers.success=Math.max(0,modifiers.success-1);
+ modifiers.risk=Math.max(0,modifiers.risk-1);
+ saveMod();
+ show(data?.error || "✅ Görev tamamlandı");
 }
 
-/* ================= GECE HAYATI ================= */
+/* ================= PvP ================= */
+function openPvP(){
+ showBox(`
+ <b>⚔️ PvP</b>
+ <button onclick="pvpWin()">Kazandım</button>
+ <button onclick="pvpLose()">Kaybettim</button>
+ <small>Kazanan +10 YTon | Kaybeden -5 YTon</small>
+ `);
+}
+async function pvpWin(){
+ await sb.rpc("pvp_reward",{p_telegram_id:TELEGRAM_ID,p_yton:10,p_xp:5});
+ show("🏆 PvP Kazanıldı");
+}
+async function pvpLose(){
+ await sb.rpc("pvp_penalty",{p_telegram_id:TELEGRAM_ID,p_yton:5,p_energy:5});
+ show("💀 PvP Kaybedildi");
+}
+
+/* ================= NIGHTLIFE ================= */
 function openNightlife(){
- showBox("nightlife");
- document.getElementById("nightlife").innerHTML=`
+ showBox(`
  <b>🌃 Gece Hayatı</b>
- <button onclick="openClub()">🍸 Gece Kulübü</button>
- <button onclick="openCoffee()">☕ Coffee Shop</button>
- <button onclick="openBrothel()">💋 Genel Ev</button>`;
+ <button onclick="club()">🍸 Gece Kulübü</button>
+ <button onclick="coffee()">☕ Coffee Shop</button>
+ <button onclick="brothel()">💋 Genel Ev</button>
+ `);
 }
+function club(){ let h="<b>🍸 Gece Kulübü</b>";
+ for(let i=0;i<30;i++)h+=`<button onclick="buy(${100+i})">İçki ${i+1}</button>`;
+ showBox(h); }
+function coffee(){ let h="<b>☕ Coffee Shop</b>";
+ for(let i=0;i<30;i++)h+=`<button onclick="buy(${200+i})">Madde ${i+1}</button>`;
+ showBox(h); }
+function brothel(){ let h="<b>💋 Genel Ev</b>";
+ for(let i=0;i<50;i++)h+=`<button onclick="buy(${300+i})">Hizmet ${i+1}</button>`;
+ showBox(h); }
 
-/* --- GECE KULÜBÜ --- */
-const drinks=["Black Velvet","Red Sin","Midnight Vodka","Neon Tequila","Golden Whiskey","Shadow Rum","Blue Ice","Fire Gin","Poison Shot","Dark Angel","Night Queen","Cold Steel","Bloody Moon","Urban Spirit","Viper Drink","Lost Soul","Electric Lime","Silent Shot","Burning Kiss","Ice Devil","Broken Heart","Deep Blue","Noir Mix","High Voltage","Smoke Glass","Neon Flame","Street King","Black Rose","After Dark","Last Call"];
-function openClub(){
- let h="<b>🍸 Gece Kulübü</b>";
- drinks.forEach((d,i)=>h+=`<button onclick="buy(${100+i})">${d} | Enerji +${2+i%4} – ${10+i*2} YTon</button>`);
- h+=`<button onclick="openNightlife()">⬅ Geri</button>`;
- document.getElementById("nightlife").innerHTML=h;
-}
-
-/* --- COFFEE SHOP --- */
-const drugs=["Mor Sis","Kırmızı Çizik","Pembe Toz","Gece Mantarı","Beyaz Hayal","Neon Ot","Zihin Parçası","Kara Çamur","Mavi Kristal","Sokak Şekeri","Derin Kafa","Gölgeli Hap","Kafesiz","Ateş Tozu","Rüya Yaprağı","Zombi Karışım","Yüksek Bulut","Çarpık Mantık","Sıvı Gece","Alt Beyin","Parazit","Bulanık Hat","Frekans","Sersem","Karanlık Çay","Zero X","Psiko Damla","Gece Çubuğu","Paranoya","Son Nefes"];
-function openCoffee(){
- let h="<b>☕ Coffee Shop</b>";
- drugs.forEach((d,i)=>h+=`<button onclick="buy(${200+i})">${d} | XP +${3+i%6} – ${30+i*3} YTon</button>`);
- h+=`<button onclick="openNightlife()">⬅ Geri</button>`;
- document.getElementById("nightlife").innerHTML=h;
-}
-
-/* --- GENEL EV --- */
-const women=["Mia Khalite","Lana Rains","Sasha Noir","Lola Velvet","Kira Moon","Vera Blaze","Nina Fox","Bella Storm","Ruby Kiss","Alina Frost","Eva Lux","Maya Sin","Daisy Night","Lexa Flame","Rina Dark","Tina Glow","Katy Venom","Nora Silk","Ivy Black","Mila Rose","Sienna Red","Aria Vice","Nika Poison","Lily Smoke","Zara Heat","Vixen Blue","Kora Night","Luna Vice","Tara Sin","Jade Velvet","Elena Ice","Roxy Hell","Vera Pink","Nadia Lux","Mona Kiss"];
-const men=["Johnny Steel","Max Power","Leo Storm","Rick Blaze","Tony Dark","Axel Noir","Chris Venom","Duke Stone","Mark Inferno","Ivan Rush"];
-const twins=["Scarlet & Violet","Luna & Nova","Ivy & Lily","Rose & Ruby","Mia & Mila"];
-function openBrothel(){
- let h="<b>💋 Genel Ev</b><small>Kadınlar</small>";
- women.forEach((n,i)=>h+=`<button onclick="buy(${300+i})">${n} – ${30+i} YTon</button>`);
- h+="<small>Erkekler</small>";
- men.forEach((n,i)=>h+=`<button onclick="buy(${400+i})">${n} – ${50+i*2} YTon</button>`);
- h+="<small>İkizler</small>";
- twins.forEach((n,i)=>h+=`<button onclick="buy(${500+i})">${n} – ${120+i*5} YTon</button>`);
- h+=`<button onclick="openNightlife()">⬅ Geri</button>`;
- document.getElementById("nightlife").innerHTML=h;
-}
-
-/* ================= SİLAH KAÇAKÇISI ================= */
-const weapons=[
-{id:600,name:"Glock 19",price:50,info:"Başarı +5 | Risk -2"},
-{id:601,name:"Desert Eagle",price:80,info:"Yüksek hasar"},
-{id:602,name:"Uzi SMG",price:110,info:"Çoklu görev bonus"},
-{id:603,name:"AK-47",price:160,info:"Zor görev avantaj"},
-{id:604,name:"M4A1",price:190,info:"Elite görev"},
-{id:605,name:"Shotgun",price:140,info:"Yakın dövüş"},
-{id:606,name:"Susturuculu",price:90,info:"Risk düşürür"},
-{id:607,name:"Sniper",price:220,info:"Boss görevi"},
-{id:608,name:"Taktik Bıçak",price:30,info:"Enerji -1"},
-{id:609,name:"El Bombası",price:120,info:"Tek kullanımlık"}
-];
+/* ================= WEAPONS ================= */
 function openWeapons(){
- showBox("weapons");
  let h="<b>🔫 Silah Kaçakçısı</b>";
- weapons.forEach(w=>h+=`<button onclick="buy(${w.id})">${w.name} – ${w.price} YTon</button><small>${w.info}</small>`);
- document.getElementById("weapons").innerHTML=h;
+ const w=["Glock","AK-47","Uzi","Sniper","Shotgun","Bıçak"];
+ w.forEach((n,i)=>h+=`<button onclick="buy(${600+i})">${n}</button>`);
+ showBox(h);
 }
 
-/* ================= HASTANE ================= */
+/* ================= HOSPITAL ================= */
 async function hospital(){
  const {data}=await sb.rpc("hospital_heal",{p_telegram_id:TELEGRAM_ID});
- modifiers.addiction=Math.max(0,modifiers.addiction-5);
- saveModifiers();
- showResult(data?.error||"İyileştirildin");
+ show(data?.error||"🏥 İyileştirildin");
 }
 
 /* ================= INIT ================= */
