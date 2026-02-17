@@ -1,18 +1,20 @@
 <script>
-/* ================= ETKİ SİSTEMİ ================= */
+/* ================= ETKİ SİSTEMİ (GENİŞLETİLMİŞ) ================= */
 
-/* ---- GLOBAL MODIFIERS ---- */
+/* ---- GLOBAL STATE ---- */
 let modifiers = JSON.parse(localStorage.getItem("modifiers")) || {
  success: 0,
  risk: 0,
- energyBonus: 0
+ energyBonus: 0,
+ addiction: 0,
+ weaponDurability: 100
 };
 
 function saveModifiers(){
  localStorage.setItem("modifiers",JSON.stringify(modifiers));
 }
 
-/* ---- BUY OVERRIDE (ETKİLİ) ---- */
+/* ================= BUY (ETKİLİ) ================= */
 async function buy(id){
  const {data}=await sb.rpc("buy_item",{
   p_telegram_id:TELEGRAM_ID,
@@ -26,13 +28,14 @@ async function buy(id){
  showResult(data?.error || "Satın alındı");
 }
 
-/* ---- ITEM EFFECTS ---- */
+/* ================= ITEM EFFECTS ================= */
 function applyItemEffect(id){
 
  /* 🔫 SİLAHLAR */
  if(id>=600 && id<=699){
   modifiers.success += 5;
   modifiers.risk -= 2;
+  modifiers.weaponDurability = 100;
  }
 
  /* 🍸 İÇKİ */
@@ -45,6 +48,7 @@ function applyItemEffect(id){
  if(id>=200 && id<=229){
   modifiers.success += 4;
   modifiers.risk += 2;
+  modifiers.addiction += 5;
  }
 
  /* 💋 GENEL EV */
@@ -57,33 +61,61 @@ function applyItemEffect(id){
  saveModifiers();
 }
 
-/* ================= GÖREV OVERRIDE ================= */
+/* ================= GÖREV (FULL KONTROL) ================= */
 async function doMission(id){
 
- let finalSuccess = 50 + modifiers.success;
- let finalRisk = Math.max(0, 20 + modifiers.risk);
+ /* ---- LEVEL KİLİDİ ---- */
+ const {data:player}=await sb.from("players")
+  .select("level").eq("telegram_id",TELEGRAM_ID).single();
+
+ let requiredLevel = Math.floor(id/10); // basit ölçek
+ if(player.level < requiredLevel){
+  showResult("⛔ Level yetersiz");
+  return;
+ }
+
+ /* ---- BAŞARI / RİSK ---- */
+ let finalSuccess = 50 + modifiers.success - modifiers.addiction;
+ let finalRisk = Math.max(0, 20 + modifiers.risk + modifiers.addiction);
+
+ /* ---- SİLAH ESKİMESİ ---- */
+ if(modifiers.weaponDurability > 0){
+  modifiers.weaponDurability -= 10;
+ } else {
+  modifiers.success = Math.max(0, modifiers.success-5);
+ }
 
  let roll = Math.random()*100;
 
  if(roll > finalSuccess){
   modifiers.energyBonus = 0;
   modifiers.success = Math.max(0, modifiers.success-3);
-  modifiers.risk += 1;
+  modifiers.risk += 2;
   saveModifiers();
-  showResult("❌ Görev başarısız (Risk çok yüksekti)");
+  showResult("❌ Görev başarısız");
   return;
  }
 
+ /* ---- BACKEND ÇAĞRI ---- */
  const {data}=await sb.rpc("do_mission",{
   p_telegram_id:TELEGRAM_ID,
   p_mission_id:id
  });
 
- modifiers.energyBonus = 0;
- modifiers.success = Math.max(0, modifiers.success-2);
- modifiers.risk = Math.max(0, modifiers.risk-1);
- saveModifiers();
+ /* ---- POLİS BASKINI ---- */
+ if(finalRisk > 40 && Math.random()*100 < finalRisk){
+  modifiers.success = 0;
+  modifiers.energyBonus = 0;
+  modifiers.risk = 0;
+  saveModifiers();
+  showResult("🚨 Polis Baskını! Bonuslar sıfırlandı");
+  return;
+ }
 
+ /* ---- BAĞIMLILIK AZALMASI ---- */
+ modifiers.addiction = Math.max(0, modifiers.addiction-2);
+
+ saveModifiers();
  showResult(data?.error || "✅ Görev başarıyla tamamlandı");
 }
 
@@ -93,12 +125,14 @@ async function loadPlayer(){
   .select("*").eq("telegram_id",TELEGRAM_ID).single();
  if(!data)return;
 
- document.getElementById("playerInfo").innerHTML=
- `Enerji: ${data.energy + modifiers.energyBonus}
- | YTon: ${data.yton}
- <br><small>
- Başarı Bonus: +${modifiers.success}% |
- Risk: ${modifiers.risk}
+ document.getElementById("playerInfo").innerHTML=`
+ Enerji: ${data.energy + modifiers.energyBonus} |
+ YTon: ${data.yton}<br>
+ <small>
+ 🎯 Başarı: +${modifiers.success}% |
+ ⚠️ Risk: ${modifiers.risk} |
+ ☠️ Bağımlılık: ${modifiers.addiction} |
+ 🔫 Silah Durumu: ${modifiers.weaponDurability}%
  </small>`;
 }
 </script>
