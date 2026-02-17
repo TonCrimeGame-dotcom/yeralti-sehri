@@ -9,13 +9,13 @@
 <style>
 body{background:#0b0b0b;color:#fff;font-family:Arial;padding:20px}
 h1{text-align:center}
-button{width:100%;padding:14px;margin:8px 0;background:#1a1a1a;color:#fff;border:none;border-radius:8px;font-size:16px}
+button{width:100%;padding:14px;margin:8px 0;background:#1a1a1a;color:#fff;border:none;border-radius:8px;font-size:15px}
 button:hover{background:#333}
 .box{background:#151515;padding:15px;border-radius:8px;margin-bottom:15px}
 .hidden{display:none}
+small{color:#aaa}
 .success{color:#4caf50}
 .error{color:#f44336}
-small{color:#aaa}
 </style>
 </head>
 
@@ -25,16 +25,10 @@ small{color:#aaa}
 
 <div id="playerInfo" class="box">Yükleniyor...</div>
 
-<button onclick="loadMissions()">💣 Görevler</button>
-<button onclick="loadShop()">🛒 Market</button>
-<button onclick="hospital()">🏥 Hastane</button>
 <button onclick="openNightlife()">🌃 Gece Hayatı</button>
-<button onclick="openWeapons()">🔫 Silah Kaçakçısı</button>
+<button onclick="hospital()">🏥 Hastane</button>
 
-<div id="missions" class="box hidden"></div>
-<div id="shop" class="box hidden"></div>
 <div id="nightlife" class="box hidden"></div>
-<div id="weapons" class="box hidden"></div>
 <div id="result" class="box hidden"></div>
 
 <script>
@@ -59,106 +53,98 @@ function showResult(msg,err=false){
 /* ================= PLAYER ================= */
 async function loadPlayer(){
   const { data } = await sb.from("players")
-    .select("*")
-    .eq("telegram_id", TELEGRAM_ID)
-    .single();
+    .select("*").eq("telegram_id", TELEGRAM_ID).single();
   if(!data) return;
-  document.getElementById("playerInfo").innerHTML = `
-    <b>Enerji:</b> ${data.energy} |
-    <b>YTon:</b> ${data.yton}
-  `;
+  document.getElementById("playerInfo").innerHTML =
+    `<b>Enerji:</b> ${data.energy} | <b>YTon:</b> ${data.yton}`;
 }
 
-/* ================= GECE HAYATI ================= */
+/* ================= BUY ================= */
+async function buy(id){
+  const { data } = await sb.rpc("buy_item",{
+    p_telegram_id: TELEGRAM_ID,
+    p_item_id: id
+  });
+  showResult(data?.error ?? "Satın alındı", !!data?.error);
+  loadPlayer();
+}
+
+/* ================= HOSPITAL ================= */
+async function hospital(){
+  const { data } = await sb.rpc("hospital_heal",{p_telegram_id: TELEGRAM_ID});
+  showResult(data?.error ?? "İyileştirildin", !!data?.error);
+  loadPlayer();
+}
+
+/* ================= NIGHTLIFE ================= */
 function openNightlife(){
   showBox("nightlife");
   document.getElementById("nightlife").innerHTML=`
     <b>🌃 Gece Hayatı</b>
+    <button onclick="openClub()">🍸 Gece Kulübü</button>
+    <button onclick="openCoffee()">☕ Coffee Shop</button>
     <button onclick="openBrothel()">💋 Genel Ev</button>
   `;
 }
 
-/* ================= GENEL EV – İSİMLİ ================= */
-const brothel = [
-  /* 35 Kadın */
-  {id:501,name:"Mia Khalite",price:30},
-  {id:502,name:"Lana Rhoadsen",price:31},
-  {id:503,name:"Abella Dangez",price:32},
-  {id:504,name:"Riley Reedon",price:33},
-  {id:505,name:"Sasha Greyon",price:34},
-  {id:506,name:"Brandi Luvex",price:35},
-  {id:507,name:"Angela Whitey",price:36},
-  {id:508,name:"Eva Elphine",price:37},
-  {id:509,name:"Megan Raines",price:38},
-  {id:510,name:"Jenna Jamis",price:39},
-  {id:511,name:"Alexis Tex",price:40},
-  {id:512,name:"Adriana Chex",price:41},
-  {id:513,name:"Nina Northy",price:42},
-  {id:514,name:"Kendra Lusty",price:43},
-  {id:515,name:"Scarlett Bloom",price:44},
-  {id:516,name:"Olivia Blackx",price:45},
-  {id:517,name:"Violet Myres",price:46},
-  {id:518,name:"Bella Storm",price:47},
-  {id:519,name:"Daisy Cruz",price:48},
-  {id:520,name:"Ruby Knox",price:49},
-  {id:521,name:"Jade Lux",price:50},
-  {id:522,name:"Tiffany Rose",price:51},
-  {id:523,name:"Lexi Moon",price:52},
-  {id:524,name:"Nora Fox",price:53},
-  {id:525,name:"Amber Sky",price:54},
-  {id:526,name:"Kylie Snow",price:55},
-  {id:527,name:"Naomi Silk",price:56},
-  {id:528,name:"Vanessa Heat",price:57},
-  {id:529,name:"Crystal Ray",price:58},
-  {id:530,name:"Lola Vice",price:59},
-  {id:531,name:"Monica Blaze",price:60},
-  {id:532,name:"Sienna Gold",price:61},
-  {id:533,name:"Roxy Flame",price:62},
-  {id:534,name:"Paige Noir",price:63},
-  {id:535,name:"Ivy Storme",price:64},
-
-  /* 10 Erkek */
-  {id:601,name:"Johnny Sinsor",price:40},
-  {id:602,name:"Manuel Ferron",price:41},
-  {id:603,name:"James Deenor",price:42},
-  {id:604,name:"Rocco Steely",price:43},
-  {id:605,name:"Markus Dupreez",price:44},
-  {id:606,name:"Alex Legend",price:45},
-  {id:607,name:"Tony Blade",price:46},
-  {id:608,name:"Victor Stone",price:47},
-  {id:609,name:"Leo Strong",price:48},
-  {id:610,name:"Max Power",price:49},
-
-  /* 5 İkiz */
-  {id:701,name:"Luna & Nova",price:70},
-  {id:702,name:"Bella & Stella",price:75},
-  {id:703,name:"Ruby & Rose",price:80},
-  {id:704,name:"Maya & Mila",price:85},
-  {id:705,name:"Lexi & Leni",price:90}
+/* ================= GECE KULÜBÜ – 30 ALKOL ================= */
+const drinks = [
+ "Bira","Şarap","Viski","Vodka","Rom","Tekila","Cin","Likör","Absinthe","Brendi",
+ "Şampanya","Prosecco","Bourbon","Scotch","Mezcal","Sake","Rakı","Aperol","Martini","Negroni",
+ "Mojito","Daiquiri","Bloody Mary","Cosmopolitan","Old Fashioned","Manhattan","Caipirinha","Spritz","Gin Tonic","Long Island"
 ];
 
-function openBrothel(){
+function openClub(){
   showBox("nightlife");
-  let html="<b>💋 Genel Ev</b><br><small>Kadın / Erkek / İkiz</small><br>";
-  brothel.forEach(p=>{
-    html+=`<button onclick="buy(${p.id})">${p.name} – ${p.price} YTon</button>`;
+  let html="<b>🍸 Gece Kulübü</b><small> Enerji + Moral</small>";
+  drinks.forEach((d,i)=>{
+    html+=`<button onclick="buy(${100+i})">🍹 ${d} | +${2+i%5} Enerji – ${10+i*2} YTon</button>`;
   });
   html+=`<button onclick="openNightlife()">⬅ Geri</button>`;
   document.getElementById("nightlife").innerHTML=html;
 }
 
-/* ================= BUY ================= */
-async function buy(id){
-  const { data } = await sb.rpc("buy_item",{p_telegram_id:TELEGRAM_ID,p_item_id:id});
-  showResult(data?.error ?? "Satın alındı",!!data?.error);
-  loadPlayer();
+/* ================= COFFEE SHOP – 30 UYUŞTURUCU ================= */
+const drugs = [
+ "Mantar","Çizik","Pembe Toz","Beyaz Bulut","Kara Taş","Yeşil Kristal","Mavi Hap","Kırmızı Hap","Altın Toz","Gece Tozu",
+ "Lunar","Solar","Venom","Ghost","Pulse","Echo","Nova","Zen","Rush","Flash",
+ "Deep","Trip","Wave","Chill","Boost","Overdrive","Focus","Drift","Spice","Void"
+];
+
+function openCoffee(){
+  showBox("nightlife");
+  let html="<b>☕ Coffee Shop</b><small> XP / Risk</small>";
+  drugs.forEach((d,i)=>{
+    html+=`<button onclick="buy(${200+i})">💊 ${d} | XP +${3+i%7} – ${30+i*3} YTon</button>`;
+  });
+  html+=`<button onclick="openNightlife()">⬅ Geri</button>`;
+  document.getElementById("nightlife").innerHTML=html;
 }
 
-/* ================= HASTANE ================= */
-async function hospital(){
-  const { data } = await sb.rpc("hospital_heal",{p_telegram_id:TELEGRAM_ID});
-  showResult(data?.error ?? "İyileştirildin",!!data?.error);
-  loadPlayer();
+/* ================= GENEL EV – 50 KARAKTER ================= */
+const brothel = [
+  /* 35 Kadın */
+  "Mia Khalite","Lana Roads","Abella Dangerz","Riley Reidz","Sasha Greyz","Eva Elfiee","Angela Whitee",
+  "Brandi Lovee","Alexis Texas","Jenna Jamess","Emily Willss","Adriana Chekk","Violet Myerss","Nina Northh",
+  "Lexi Lunaa","Ava Addamss","Kendra Lustt","Scarlett Sagee","Megan Rainn","Kimmy Grangerr",
+  "Sofia Leonee","Valentina Nappii","Aria Alexiss","Autumn Fallss","Bella Rollins","Carmen Callawayy",
+  "Daisy Taylorr","Ella Knoxx","Gina Valentinaa","Hazel Mooree","Ivy Wolfee","Jane Wildee","Kali Rosess","Lia Lovelacee","Mona Wales",
+
+  /* 10 Erkek */
+  "Johnny Sinsor","Manuel Ferrar","Rocco Steell","James Deenn","Lex Steelee","Jason Luvv","Markus Dupreee","Tommy Gunnr","Mike Adrianoo","Ramon Nomarr",
+
+  /* 5 İkiz */
+  "Twin Angels","Double Trouble","Mirror Queens","Siam Night","Duo Desire"
+];
+
+function openBrothel(){
+  showBox("nightlife");
+  let html="<b>💋 Genel Ev</b><small> Enerji & Moral</small>";
+  brothel.forEach((n,i)=>{
+    html+=`<button onclick="buy(${300+i})">💖 ${n} – ${30+i} YTon</button>`;
+  });
+  html+=`<button onclick="openNightlife()">⬅ Geri</button>`;
+  document.getElementById("nightlife").innerHTML=html;
 }
 
 /* ================= INIT ================= */
