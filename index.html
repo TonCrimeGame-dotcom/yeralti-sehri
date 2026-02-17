@@ -69,34 +69,82 @@ async function loadPlayer(){
   `;
 }
 
-/* ================= GÖREVLER ================= */
-async function loadMissions(){
-  showBox("missions");
-  const box = document.getElementById("missions");
-  box.innerHTML="<b>💣 Görevler</b>";
-  const { data } = await sb.from("missions").select("*").eq("active",true);
-  if(!data || data.length===0){ box.innerHTML+="<p>Görev yok</p>"; return; }
-  data.forEach(m=>{
-    box.innerHTML+=`
-      <button onclick="doMission(${m.id})">
-        ${m.name} | Enerji ${m.energy_cost}
-      </button>`;
-  });
-}
-async function doMission(id){
-  const { data } = await sb.rpc("do_mission",{p_telegram_id:TELEGRAM_ID,p_mission_id:id});
-  showResult(data?.error ?? "Görev tamamlandı",!!data?.error);
-  loadPlayer();
+/* ================= GECE HAYATI ================= */
+function openNightlife(){
+  showBox("nightlife");
+  document.getElementById("nightlife").innerHTML=`
+    <b>🌃 Gece Hayatı</b>
+    <button onclick="openBrothel()">💋 Genel Ev</button>
+  `;
 }
 
-/* ================= MARKET ================= */
-function loadShop(){
-  showBox("shop");
-  document.getElementById("shop").innerHTML=`
-    <b>🛒 Market</b>
-    <button onclick="buy(1)">🍺 Alkol – 10</button>
-    <button onclick="buy(2)">💊 Uyuşturucu – 30</button>
-  `;
+/* ================= GENEL EV – İSİMLİ ================= */
+const brothel = [
+  /* 35 Kadın */
+  {id:501,name:"Mia Khalite",price:30},
+  {id:502,name:"Lana Rhoadsen",price:31},
+  {id:503,name:"Abella Dangez",price:32},
+  {id:504,name:"Riley Reedon",price:33},
+  {id:505,name:"Sasha Greyon",price:34},
+  {id:506,name:"Brandi Luvex",price:35},
+  {id:507,name:"Angela Whitey",price:36},
+  {id:508,name:"Eva Elphine",price:37},
+  {id:509,name:"Megan Raines",price:38},
+  {id:510,name:"Jenna Jamis",price:39},
+  {id:511,name:"Alexis Tex",price:40},
+  {id:512,name:"Adriana Chex",price:41},
+  {id:513,name:"Nina Northy",price:42},
+  {id:514,name:"Kendra Lusty",price:43},
+  {id:515,name:"Scarlett Bloom",price:44},
+  {id:516,name:"Olivia Blackx",price:45},
+  {id:517,name:"Violet Myres",price:46},
+  {id:518,name:"Bella Storm",price:47},
+  {id:519,name:"Daisy Cruz",price:48},
+  {id:520,name:"Ruby Knox",price:49},
+  {id:521,name:"Jade Lux",price:50},
+  {id:522,name:"Tiffany Rose",price:51},
+  {id:523,name:"Lexi Moon",price:52},
+  {id:524,name:"Nora Fox",price:53},
+  {id:525,name:"Amber Sky",price:54},
+  {id:526,name:"Kylie Snow",price:55},
+  {id:527,name:"Naomi Silk",price:56},
+  {id:528,name:"Vanessa Heat",price:57},
+  {id:529,name:"Crystal Ray",price:58},
+  {id:530,name:"Lola Vice",price:59},
+  {id:531,name:"Monica Blaze",price:60},
+  {id:532,name:"Sienna Gold",price:61},
+  {id:533,name:"Roxy Flame",price:62},
+  {id:534,name:"Paige Noir",price:63},
+  {id:535,name:"Ivy Storme",price:64},
+
+  /* 10 Erkek */
+  {id:601,name:"Johnny Sinsor",price:40},
+  {id:602,name:"Manuel Ferron",price:41},
+  {id:603,name:"James Deenor",price:42},
+  {id:604,name:"Rocco Steely",price:43},
+  {id:605,name:"Markus Dupreez",price:44},
+  {id:606,name:"Alex Legend",price:45},
+  {id:607,name:"Tony Blade",price:46},
+  {id:608,name:"Victor Stone",price:47},
+  {id:609,name:"Leo Strong",price:48},
+  {id:610,name:"Max Power",price:49},
+
+  /* 5 İkiz */
+  {id:701,name:"Luna & Nova",price:70},
+  {id:702,name:"Bella & Stella",price:75},
+  {id:703,name:"Ruby & Rose",price:80},
+  {id:704,name:"Maya & Mila",price:85},
+  {id:705,name:"Lexi & Leni",price:90}
+];
+
+function openBrothel(){
+  showBox("nightlife");
+  let html="<b>💋 Genel Ev</b><br><small>Kadın / Erkek / İkiz</small><br>";
+  brothel.forEach(p=>{
+    html+=`<button onclick="buy(${p.id})">${p.name} – ${p.price} YTon</button>`;
+  });
+  html+=`<button onclick="openNightlife()">⬅ Geri</button>`;
+  document.getElementById("nightlife").innerHTML=html;
 }
 
 /* ================= BUY ================= */
@@ -111,59 +159,6 @@ async function hospital(){
   const { data } = await sb.rpc("hospital_heal",{p_telegram_id:TELEGRAM_ID});
   showResult(data?.error ?? "İyileştirildin",!!data?.error);
   loadPlayer();
-}
-
-/* ================= GECE HAYATI ================= */
-function openNightlife(){
-  showBox("nightlife");
-  document.getElementById("nightlife").innerHTML=`
-    <b>🌃 Gece Hayatı</b>
-    <button onclick="openClub()">🍸 Gece Kulübü</button>
-    <button onclick="openCoffee()">☕ Coffee Shop</button>
-    <button onclick="openBrothel()">💋 Genel Ev</button>
-  `;
-}
-
-/* ================= GENEL EV – 50 KİŞİ ================= */
-const brothel = [
-  /* 35 Kadın */
-  ...Array.from({length:35},(_,i)=>({
-    id:500+i,
-    name:`Kadın #${i+1}`,
-    price:30 + i
-  })),
-  /* 10 Erkek */
-  ...Array.from({length:10},(_,i)=>({
-    id:600+i,
-    name:`Erkek #${i+1}`,
-    price:35 + i
-  })),
-  /* 5 İkiz */
-  ...Array.from({length:5},(_,i)=>({
-    id:700+i,
-    name:`İkizler #${i+1}`,
-    price:70 + i*5
-  }))
-];
-
-function openBrothel(){
-  showBox("nightlife");
-  let html="<b>💋 Genel Ev</b><small><br>Kadın / Erkek / İkiz</small><br>";
-  brothel.forEach(p=>{
-    html+=`<button onclick="buy(${p.id})">${p.name} – ${p.price} YTon</button>`;
-  });
-  html+=`<button onclick="openNightlife()">⬅ Geri</button>`;
-  document.getElementById("nightlife").innerHTML=html;
-}
-
-/* ================= SİLAH ================= */
-function openWeapons(){
-  showBox("weapons");
-  document.getElementById("weapons").innerHTML=`
-    <b>🔫 Silah Kaçakçısı</b>
-    <button onclick="buy(401)">🔫 Tabanca – 50</button>
-    <button onclick="buy(402)">🗡 Bıçak – 20</button>
-  `;
 }
 
 /* ================= INIT ================= */
