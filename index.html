@@ -2,7 +2,7 @@
 <html lang="tr">
 <head>
 <meta charset="UTF-8">
-<title>🔥 Yeraltı Şehri</title>
+<title>Yeraltı Şehri</title>
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <script src="https://unpkg.com/@supabase/supabase-js@2"></script>
 
@@ -13,8 +13,7 @@ button{width:100%;padding:14px;margin:8px 0;background:#1a1a1a;color:#fff;border
 button:hover{background:#333}
 .box{background:#151515;padding:15px;border-radius:8px;margin-bottom:15px}
 .hidden{display:none}
-small{opacity:.7;display:block}
-.locked{opacity:.4}
+small{opacity:.7}
 </style>
 </head>
 
@@ -39,37 +38,42 @@ const sb = supabase.createClient(
  "https://hwhscuyudwphnsipibpy.supabase.co",
  "sb_publishable_dItLcV8z83CvDWuR8nTabA_ImTHGETu"
 );
-const TELEGRAM_ID = "162154220";
+const TELEGRAM_ID="162154220";
 
 /* ================= MODIFIERS ================= */
 let modifiers = JSON.parse(localStorage.getItem("modifiers")) || {
- success:0, risk:0, energy:0
+ success: 0,
+ risk: 0,
+ energyBonus: 0
 };
-const saveMod=()=>localStorage.setItem("modifiers",JSON.stringify(modifiers));
+function saveModifiers(){
+ localStorage.setItem("modifiers",JSON.stringify(modifiers));
+}
 
 /* ================= UI ================= */
-function show(msg){
+function show(html){
+ const box=document.getElementById("content");
+ box.innerHTML=html;
+ box.classList.remove("hidden");
+ document.getElementById("result").classList.add("hidden");
+}
+function showResult(msg){
  document.getElementById("result").innerHTML=msg;
  document.getElementById("result").classList.remove("hidden");
  loadPlayer();
-}
-function showBox(html){
- const c=document.getElementById("content");
- c.innerHTML=html;
- c.classList.remove("hidden");
 }
 
 /* ================= PLAYER ================= */
 async function loadPlayer(){
  const {data}=await sb.from("players")
- .select("*").eq("telegram_id",TELEGRAM_ID).single();
+  .select("*").eq("telegram_id",TELEGRAM_ID).single();
  if(!data)return;
 
  document.getElementById("playerInfo").innerHTML=`
- <b>Level:</b> ${data.level} | <b>XP:</b> ${data.xp}<br>
- <b>Enerji:</b> ${data.energy + modifiers.energy}<br>
- <b>YTon:</b> ${data.yton}<br>
- <small>Başarı +${modifiers.success}% | Risk ${modifiers.risk}</small>
+ Level: ${data.level} | XP: ${data.xp}<br>
+ Enerji: ${data.energy + (modifiers.energyBonus||0)}<br>
+ YTon: ${data.yton}<br>
+ <small>Başarı +${modifiers.success||0}% | Risk ${modifiers.risk||0}</small>
  `;
 }
 
@@ -79,103 +83,115 @@ async function buy(id){
   p_telegram_id:TELEGRAM_ID,
   p_item_id:id
  });
- if(!data?.error){ applyItem(id); }
- show(data?.error || "Satın alındı");
+ if(!data?.error){
+  applyItemEffect(id);
+ }
+ showResult(data?.error||"Satın alındı");
 }
 
-function applyItem(id){
- if(id>=600){ modifiers.success+=5; modifiers.risk-=2; }
- if(id>=100&&id<200){ modifiers.energy+=3; modifiers.risk+=1; }
+/* ================= ITEM EFFECT ================= */
+function applyItemEffect(id){
+ if(id>=600){ modifiers.success+=5; modifiers.risk=Math.max(0,modifiers.risk-1); }
+ if(id>=100&&id<200){ modifiers.energyBonus+=3; modifiers.risk+=1; }
  if(id>=200&&id<300){ modifiers.success+=4; modifiers.risk+=2; }
- if(id>=300){ modifiers.success+=6; modifiers.energy+=5; }
- saveMod();
+ if(id>=300&&id<600){ modifiers.success+=6; modifiers.energyBonus+=5; modifiers.risk+=1; }
+ saveModifiers();
 }
 
-/* ================= MISSIONS ================= */
+/* ================= GÖREVLER ================= */
 async function loadMissions(){
  const {data}=await sb.from("missions").select("*").eq("active",true);
- if(!data||!data.length){ showBox("Görev yok"); return; }
-
+ if(!data||!data.length){
+  show("<b>💣 Görevler</b><p>Aktif görev yok</p>");
+  return;
+ }
  let h="<b>💣 Görevler</b>";
  data.forEach(m=>{
-  h+=`
-  <button onclick="doMission(${m.id})">
-   ${m.name} – Enerji ${m.energy_cost}
-  </button>
-  <small>${m.description}</small>`;
+  h+=`<button onclick="doMission(${m.id})">${m.name}</button>
+      <small>Enerji ${m.energy_cost}</small>`;
  });
- showBox(h);
+ show(h);
 }
 
 async function doMission(id){
- let chance=50+modifiers.success;
- let roll=Math.random()*100;
- if(roll>chance){
-  modifiers.success=Math.max(0,modifiers.success-2);
-  modifiers.risk+=1;
-  saveMod();
-  show("❌ Görev başarısız");
+ let successChance=50+(modifiers.success||0);
+ if(Math.random()*100>successChance){
+  modifiers.risk+=1; saveModifiers();
+  showResult("❌ Görev başarısız");
   return;
  }
  const {data}=await sb.rpc("do_mission",{
   p_telegram_id:TELEGRAM_ID,
   p_mission_id:id
  });
- modifiers.success=Math.max(0,modifiers.success-1);
+ modifiers.success=Math.max(0,modifiers.success-2);
  modifiers.risk=Math.max(0,modifiers.risk-1);
- saveMod();
- show(data?.error || "✅ Görev tamamlandı");
+ modifiers.energyBonus=0;
+ saveModifiers();
+ showResult(data?.error||"✅ Görev tamamlandı");
 }
 
-/* ================= PvP ================= */
+/* ================= PvP (GERÇEK) ================= */
+const pvpQuestions=[
+ {
+  q:"Patron 1900 doğumlu, evlilik 1932. Kasa şifresi?",
+  o:["1900","1932","1934","1885"],
+  c:1
+ },
+ {
+  q:"Hapishanede en kısa yol?",
+  o:["A","B","C","D"],
+  c:2
+ },
+ {
+  q:"İrlanda satışı için doğru kişi?",
+  o:["Açık ten","Esmer","Kızıl","Sarışın"],
+  c:0
+ }
+];
+
 function openPvP(){
- showBox(`
- <b>⚔️ PvP</b>
- <button onclick="pvpWin()">Kazandım</button>
- <button onclick="pvpLose()">Kaybettim</button>
- <small>Kazanan +10 YTon | Kaybeden -5 YTon</small>
- `);
-}
-async function pvpWin(){
- await sb.rpc("pvp_reward",{p_telegram_id:TELEGRAM_ID,p_yton:10,p_xp:5});
- show("🏆 PvP Kazanıldı");
-}
-async function pvpLose(){
- await sb.rpc("pvp_penalty",{p_telegram_id:TELEGRAM_ID,p_yton:5,p_energy:5});
- show("💀 PvP Kaybedildi");
+ const q=pvpQuestions[Math.floor(Math.random()*pvpQuestions.length)];
+ let h=`<b>⚔️ PvP</b><p>${q.q}</p>`;
+ q.o.forEach((x,i)=>{
+  h+=`<button onclick="answerPvP(${i},${q.c})">${x}</button>`;
+ });
+ show(h);
 }
 
-/* ================= NIGHTLIFE ================= */
-function openNightlife(){
- showBox(`
- <b>🌃 Gece Hayatı</b>
- <button onclick="club()">🍸 Gece Kulübü</button>
- <button onclick="coffee()">☕ Coffee Shop</button>
- <button onclick="brothel()">💋 Genel Ev</button>
- `);
+async function answerPvP(sel,cor){
+ if(sel===cor){
+  await sb.rpc("pvp_reward",{p_telegram_id:TELEGRAM_ID,p_yton:10,p_xp:5});
+  showResult("🏆 Doğru! +10 YTon");
+ }else{
+  await sb.rpc("pvp_penalty",{p_telegram_id:TELEGRAM_ID,p_yton:5,p_energy:5});
+  showResult("❌ Yanlış! -5 YTon");
+ }
 }
-function club(){ let h="<b>🍸 Gece Kulübü</b>";
- for(let i=0;i<30;i++)h+=`<button onclick="buy(${100+i})">İçki ${i+1}</button>`;
- showBox(h); }
-function coffee(){ let h="<b>☕ Coffee Shop</b>";
- for(let i=0;i<30;i++)h+=`<button onclick="buy(${200+i})">Madde ${i+1}</button>`;
- showBox(h); }
-function brothel(){ let h="<b>💋 Genel Ev</b>";
- for(let i=0;i<50;i++)h+=`<button onclick="buy(${300+i})">Hizmet ${i+1}</button>`;
- showBox(h); }
+
+/* ================= GECE HAYATI ================= */
+function openNightlife(){
+ show(`<b>🌃 Gece Hayatı</b>
+ <button onclick="openClub()">🍸 Gece Kulübü</button>
+ <button onclick="openCoffee()">☕ Coffee Shop</button>
+ <button onclick="openBrothel()">💋 Genel Ev</button>`);
+}
+
+function openClub(){ show("<b>🍸 Gece Kulübü</b><p>İçkiler aktif</p>"); }
+function openCoffee(){ show("<b>☕ Coffee Shop</b><p>Maddeler aktif</p>"); }
+function openBrothel(){ show("<b>💋 Genel Ev</b><p>Karakterler aktif</p>"); }
 
 /* ================= WEAPONS ================= */
 function openWeapons(){
- let h="<b>🔫 Silah Kaçakçısı</b>";
- const w=["Glock","AK-47","Uzi","Sniper","Shotgun","Bıçak"];
- w.forEach((n,i)=>h+=`<button onclick="buy(${600+i})">${n}</button>`);
- showBox(h);
+ show(`<b>🔫 Silah Kaçakçısı</b>
+ <button onclick="buy(600)">Glock 19 – 50 YTon</button>
+ <button onclick="buy(601)">AK-47 – 160 YTon</button>`);
 }
 
-/* ================= HOSPITAL ================= */
+/* ================= HASTANE ================= */
 async function hospital(){
  const {data}=await sb.rpc("hospital_heal",{p_telegram_id:TELEGRAM_ID});
- show(data?.error||"🏥 İyileştirildin");
+ showResult(data?.error||"❤️ İyileştirildin");
 }
 
 /* ================= INIT ================= */
