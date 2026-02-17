@@ -1,7 +1,7 @@
 <!DOCTYPE html>
 <html lang="tr">
 <head>
-<meta charset="UTF-8" />
+<meta charset="UTF-8">
 <title>Yeraltı Şehri</title>
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 
@@ -11,27 +11,27 @@
 body{
   background:#0b0b0b;
   color:#fff;
-  font-family:Arial, sans-serif;
+  font-family:Arial,sans-serif;
   padding:20px;
 }
 h1{text-align:center}
-.box{
-  background:#151515;
-  border-radius:10px;
-  padding:15px;
-  margin-bottom:15px;
-}
 button{
   width:100%;
   padding:14px;
-  margin:6px 0;
-  background:#1e1e1e;
+  margin:8px 0;
+  background:#1a1a1a;
   color:#fff;
   border:none;
   border-radius:8px;
   font-size:16px;
 }
 button:hover{background:#333}
+.box{
+  background:#151515;
+  padding:15px;
+  border-radius:8px;
+  margin-bottom:15px;
+}
 .hidden{display:none}
 .success{color:#4caf50}
 .error{color:#f44336}
@@ -44,17 +44,14 @@ button:hover{background:#333}
 
 <div id="playerInfo" class="box">Yükleniyor...</div>
 
-<div class="box">
-  <button onclick="openMissions()">💣 Görevler</button>
-  <button onclick="openShop()">🛒 Satın Alım</button>
-  <button onclick="openHospital()">🏥 Hastane</button>
-  <button onclick="openNightlife()">🌃 Gece Hayatı</button>
-  <button onclick="openWeapons()">🔫 Silah Kaçakçısı</button>
-</div>
+<button onclick="showBox('missions')">💣 Görevler</button>
+<button onclick="showBox('shop')">🛒 Satın Alım</button>
+<button onclick="hospital()">🏥 Hastane</button>
+<button onclick="openNightlife()">🌃 Gece Hayatı</button>
+<button onclick="openWeapons()">🔫 Silah Kaçakçısı</button>
 
 <div id="missions" class="box hidden"></div>
 <div id="shop" class="box hidden"></div>
-<div id="hospital" class="box hidden"></div>
 <div id="nightlife" class="box hidden"></div>
 <div id="weapons" class="box hidden"></div>
 <div id="result" class="box hidden"></div>
@@ -68,36 +65,31 @@ const sb = supabase.createClient(
 
 const TELEGRAM_ID = "162154220";
 
-/* ================= UTIL ================= */
-function hideAll(){
-  document.querySelectorAll(".box").forEach(b=>{
-    if(b.id!=="playerInfo") b.classList.add("hidden");
-  });
-}
+/* ================= UI ================= */
 function showBox(id){
-  hideAll();
+  document.querySelectorAll(".box").forEach(b=>b.classList.add("hidden"));
   document.getElementById(id).classList.remove("hidden");
 }
+
 function showResult(msg,isErr=false){
-  const r=document.getElementById("result");
-  r.classList.remove("hidden");
-  r.innerHTML=`<div class="${isErr?'error':'success'}">${msg}</div>`;
+  showBox("result");
+  document.getElementById("result").innerHTML =
+    `<span class="${isErr?'error':'success'}">${msg}</span>`;
 }
 
 /* ================= PLAYER ================= */
 async function loadPlayer(){
-  const { data, error } = await sb
-    .from("players")
+  const { data } = await sb.from("players")
     .select("*")
     .eq("telegram_id", TELEGRAM_ID)
     .single();
 
-  if(error){
-    document.getElementById("playerInfo").innerHTML="Oyuncu bulunamadı";
+  if(!data){
+    document.getElementById("playerInfo").innerHTML="Oyuncu yok";
     return;
   }
 
-  document.getElementById("playerInfo").innerHTML=`
+  document.getElementById("playerInfo").innerHTML = `
     <b>Karakter:</b> ${data.character}<br>
     <b>Level:</b> ${data.level}<br>
     <b>XP:</b> ${data.xp}<br>
@@ -106,23 +98,25 @@ async function loadPlayer(){
   `;
 }
 
-/* ================= MISSIONS ================= */
-async function openMissions(){
+/* ================= GÖREVLER ================= */
+async function loadMissions(){
   showBox("missions");
   const box=document.getElementById("missions");
-  box.innerHTML="<b>Görevler</b><br>";
+  box.innerHTML="<b>💣 Görevler</b>";
 
-  const { data } = await sb.from("missions").select("*").eq("active",true);
+  const { data } = await sb.from("missions")
+    .select("*")
+    .eq("active", true);
 
   if(!data || data.length===0){
-    box.innerHTML+="Görev yok";
+    box.innerHTML+="<p>Görev yok</p>";
     return;
   }
 
   data.forEach(m=>{
     box.innerHTML+=`
       <button onclick="doMission(${m.id})">
-        ${m.name} (+${m.yton_reward} YTon)
+        ${m.name} | Enerji ${m.energy_cost}
       </button>`;
   });
 }
@@ -136,39 +130,16 @@ async function doMission(id){
   loadPlayer();
 }
 
-/* ================= SHOP ================= */
-function openShop(){
+/* ================= SATIN ALIM ================= */
+function loadShop(){
   showBox("shop");
   document.getElementById("shop").innerHTML=`
-    <b>Satın Alım</b>
-    <button onclick="buy(11)">🍺 Alkol (10)</button>
-    <button onclick="buy(21)">🌿 Uyuşturucu (30)</button>
+    <b>🛒 Market</b>
+    <button onclick="buy(1)">🍺 Alkol – 10</button>
+    <button onclick="buy(2)">💊 Uyuşturucu – 30</button>
   `;
 }
 
-/* ================= WEAPONS ================= */
-function openWeapons(){
-  showBox("weapons");
-  document.getElementById("weapons").innerHTML=`
-    <b>Silah Kaçakçısı</b>
-    <button onclick="buy(31)">🔫 Tabanca (50)</button>
-    <button onclick="buy(32)">💥 Pompalı (80)</button>
-  `;
-}
-
-/* ================= NIGHTLIFE ================= */
-function openNightlife(){
-  showBox("nightlife");
-  document.getElementById("nightlife").innerHTML=`
-    <b>Gece Kulübü</b>
-    <button onclick="buy(11)">🍸 Votka</button>
-    <hr>
-    <b>Coffee Shop</b>
-    <button onclick="buy(21)">🌿 Ot</button>
-  `;
-}
-
-/* ================= BUY ================= */
 async function buy(id){
   const { data } = await sb.rpc("buy_item",{
     p_telegram_id: TELEGRAM_ID,
@@ -178,16 +149,8 @@ async function buy(id){
   loadPlayer();
 }
 
-/* ================= HOSPITAL ================= */
-function openHospital(){
-  showBox("hospital");
-  document.getElementById("hospital").innerHTML=`
-    <b>Hastane</b>
-    <button onclick="heal()">Tedavi Ol</button>
-  `;
-}
-
-async function heal(){
+/* ================= HASTANE ================= */
+async function hospital(){
   const { data } = await sb.rpc("hospital_heal",{
     p_telegram_id: TELEGRAM_ID
   });
@@ -195,8 +158,57 @@ async function heal(){
   loadPlayer();
 }
 
+/* ================= GECE HAYATI ================= */
+function openNightlife(){
+  showBox("nightlife");
+  document.getElementById("nightlife").innerHTML=`
+    <b>🌃 Gece Hayatı</b>
+    <button onclick="openClub()">🍸 Gece Kulübü</button>
+    <button onclick="openCoffee()">☕ Coffee Shop</button>
+    <button onclick="openBrothel()">💋 Genel Ev</button>
+  `;
+}
+
+function openClub(){
+  document.getElementById("nightlife").innerHTML=`
+    <b>🍸 Gece Kulübü</b>
+    <button onclick="buy(11)">🍺 Bira – 10</button>
+    <button onclick="buy(12)">🥃 Viski – 20</button>
+    <button onclick="openNightlife()">⬅ Geri</button>
+  `;
+}
+
+function openCoffee(){
+  document.getElementById("nightlife").innerHTML=`
+    <b>☕ Coffee Shop</b>
+    <button onclick="buy(21)">🌿 Ot – 30</button>
+    <button onclick="buy(22)">💊 Hap – 50</button>
+    <button onclick="openNightlife()">⬅ Geri</button>
+  `;
+}
+
+function openBrothel(){
+  document.getElementById("nightlife").innerHTML=`
+    <b>💋 Genel Ev</b>
+    <button onclick="hospital()">❤️ Hizmet Al – 25</button>
+    <button onclick="openNightlife()">⬅ Geri</button>
+  `;
+}
+
+/* ================= SİLAH KAÇAKÇISI ================= */
+function openWeapons(){
+  showBox("weapons");
+  document.getElementById("weapons").innerHTML=`
+    <b>🔫 Silah Kaçakçısı</b>
+    <button onclick="buy(31)">🔫 Tabanca – 50</button>
+    <button onclick="buy(32)">💣 Bıçak – 20</button>
+  `;
+}
+
 /* ================= INIT ================= */
 loadPlayer();
+loadMissions();
+loadShop();
 </script>
 
 </body>
