@@ -29,10 +29,151 @@ small{opacity:.7}
 <button onclick="openWeapons()">🔫 Silah Kaçakçısı</button>
 <button onclick="hospital()">🏥 Hastane</button>
 
-<div id="content" class="box hidden"></div>
+ <div id="playerInfo" class="box"></div>
+<div id="missions" class="box hidden"></div>
 <div id="result" class="box hidden"></div>
 
-<script>
+
+ <script>
+/* ================= GENEL UI ================= */
+function showBox(id){
+ document.querySelectorAll(".box").forEach(b=>b.classList.add("hidden"));
+ document.getElementById(id).classList.remove("hidden");
+}
+
+function setHTML(id, html){
+ document.getElementById(id).innerHTML = html;
+}
+
+/* ================= PLAYER ================= */
+async function loadPlayer(){
+ const {data,error}=await sb
+  .from("players")
+  .select("*")
+  .eq("telegram_id",TELEGRAM_ID)
+  .single();
+
+ if(error){
+  console.error(error);
+  return;
+ }
+
+ setHTML("playerInfo",`
+  Level: ${data.level || 1} | XP: ${data.xp || 0}<br>
+  Enerji: ${data.energy || 0}<br>
+  YTon: ${data.yton || 0}
+ `);
+}
+
+/* ================= GÖREVLER ================= */
+async function loadMissions(){
+ showBox("missions");
+
+ const {data,error}=await sb
+  .from("missions")
+  .select("*")
+  .eq("active",true);
+
+ if(error){
+  setHTML("missions","Hata oluştu");
+  return;
+ }
+
+ if(!data.length){
+  setHTML("missions","Aktif görev yok");
+  return;
+ }
+
+ let html = "<b>💣 Görevler</b>";
+
+ data.forEach(m=>{
+  html += `
+   <button onclick="doMission(${m.id})">
+    ${m.name} (Enerji ${m.energy_cost})
+   </button>
+  `;
+ });
+
+ setHTML("missions", html);
+}
+
+async function doMission(id){
+ const {data,error}=await sb.rpc("do_mission",{
+  p_telegram_id: TELEGRAM_ID,
+  p_mission_id: id
+ });
+
+ if(error){
+  showResult("❌ Hata: "+error.message);
+  return;
+ }
+
+ showResult(`
+  ✅ Görev tamamlandı<br>
+  +${data.xp} XP<br>
+  +${data.yton} YTon
+ `);
+}
+
+/* ================= PvP ================= */
+async function loadPvPQuestion(){
+ showBox("result");
+
+ const {data,error}=await sb
+  .from("pvp_questions")
+  .select("*")
+  .order("id",{ascending:false})
+  .limit(1)
+  .single();
+
+ if(error){
+  setHTML("result","PvP sorusu yok");
+  return;
+ }
+
+ window.pvpStartTime = Date.now();
+
+ setHTML("result",`
+  <b>⚔️ PvP</b>
+  <p>${data.question}</p>
+  <button onclick="answerPvP(${data.id},'A')">A) ${data.option_a}</button>
+  <button onclick="answerPvP(${data.id},'B')">B) ${data.option_b}</button>
+  <button onclick="answerPvP(${data.id},'C')">C) ${data.option_c}</button>
+  <button onclick="answerPvP(${data.id},'D')">D) ${data.option_d}</button>
+ `);
+}
+
+async function answerPvP(id,answer){
+ let time = Math.floor((Date.now()-window.pvpStartTime)/1000);
+
+ const {data,error}=await sb.rpc("pvp_answer",{
+  p_telegram_id: TELEGRAM_ID,
+  p_question_id: id,
+  p_answer: answer,
+  p_time: time
+ });
+
+ if(error){
+  showResult("❌ "+error.message);
+  return;
+ }
+
+ showResult(
+  data.result==="win"
+   ? `🏆 Kazandın +${data.yton} YTon +${data.xp} XP`
+   : `❌ Kaybettin -${data.yton} YTon`
+ );
+}
+
+/* ================= RESULT ================= */
+function showResult(html){
+ setHTML("result", html);
+ showBox("result");
+ loadPlayer();
+}
+
+/* ================= INIT ================= */
+loadPlayer();
  async function loadPvPQuestion(){
  const {data}=await sb
   .from("pvp_questions")
