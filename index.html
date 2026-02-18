@@ -92,6 +92,12 @@ button:hover{
 </div>
 
 <script>
+ const sb = supabase.createClient(
+  "https://hwhscuyudwphnsipibpy.supabase.co",
+  "PUBLIC_ANON_KEY"
+);
+const TELEGRAM_ID = "162154220";
+ src="https://unpkg.com/@supabase/supabase-js@2">
 async function openPvP(){
  showBox("result");
 
