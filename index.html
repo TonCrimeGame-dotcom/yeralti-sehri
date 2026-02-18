@@ -1,100 +1,13 @@
-<!DOCTYPE html>
-<html lang="tr">
-<head>
-<meta charset="UTF-8">
-<title>Yeraltı Şehri</title>
-<meta name="viewport" content="width=device-width, initial-scale=1.0">
-<style>
-body{background:#0b0b0b;color:#fff;font-family:Arial;padding:20px}
-h1{text-align:center}
-button{width:100%;padding:14px;margin:8px 0;background:#1a1a1a;color:#fff;border:none;border-radius:8px}
-.box{background:#151515;padding:15px;border-radius:8px;margin-bottom:15px}
-.hidden{display:none}
-small{opacity:.7}
-</style>
-</head>
-
-<body>
-
 <h1>🔥 Yeraltı Şehri</h1>
 
-<div id="playerInfo" class="box">
-Level: 1 | XP: 0<br>
-Enerji: 100 | YTon: 50<br>
-Başarı: %0 | Risk: 0
-</div>
-
-<button onclick="loadMissions()">💣 Görevler</button>
-<button onclick="openPvP()">⚔️ PvP</button>
-<button onclick="openNightlife()">🌃 Gece Hayatı</button>
-<button onclick="openWeapons()">🔫 Silah Kaçakçısı</button>
-<button onclick="hospital()">🏥 Hastane</button>
-
-<div id="content" class="box hidden"></div>
+<button onclick="go('missions.html')">💣 Görevler</button>
+<button onclick="go('pvp.html')">⚔️ PvP</button>
+<button onclick="go('nightlife.html')">🌃 Gece Hayatı</button>
+<button onclick="go('weapons.html')">🔫 Silah Kaçakçısı</button>
+<button onclick="go('hospital.html')">🏥 Hastane</button>
 
 <script>
-/* ========== UI ========== */
-function show(html){
- const box=document.getElementById("content");
- box.innerHTML=html;
- box.classList.remove("hidden");
-}
-
-/* ========== GÖREVLER ========== */
-function loadMissions(){
- show(`
- <b>💣 Görevler</b>
- <button onclick="alert('Görev yapıldı')">Market Soygunu</button>
- <button onclick="alert('Görev yapıldı')">Araba Çalma</button>
- `);
-}
-
-/* ========== PvP ========== */
-function openPvP(){
- show(`
- <b>⚔️ PvP</b>
- <p>Soru: Patron 1900 doğumlu, evlilik 1932, veliaht 1934</p>
- <p>Kasa şifresi?</p>
- <button onclick="pvpResult(true)">A) 32</button>
- <button onclick="pvpResult(false)">B) 34</button>
- <button onclick="pvpResult(false)">C) 66</button>
- <button onclick="pvpResult(false)">D) 68</button>
- `);
-}
-
-function pvpResult(win){
- show(
-  win
-   ? "🏆 Kazandın! +10 YTon"
-   : "❌ Kaybettin! -5 YTon"
- );
-}
-
-/* ========== GECE HAYATI ========== */
-function openNightlife(){
- show(`
- <b>🌃 Gece Hayatı</b>
- <button onclick="show('🍸 Gece Kulübü dolu')">Gece Kulübü</button>
- <button onclick="show('☕ Coffee Shop dolu')">Coffee Shop</button>
- <button onclick="show('💋 Genel Ev dolu')">Genel Ev</button>
- `);
-}
-
-/* ========== SİLAHLAR ========== */
-function openWeapons(){
- show(`
- <b>🔫 Silah Kaçakçısı</b>
- <button>Glock 19 – 50 YTon</button>
- <button>AK-47 – 150 YTon</button>
- <button>Sniper – 250 YTon</button>
- `);
-}
-
-/* ========== HASTANE ========== */
-function hospital(){
- show("🏥 İyileştirildin. Enerji full!");
+function go(page){
+ window.location.href = page;
 }
 </script>
-
-</body>
-</html>
