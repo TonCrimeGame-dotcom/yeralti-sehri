@@ -2,79 +2,82 @@
 <html lang="tr">
 <head>
 <meta charset="UTF-8">
-<title>PvP | Yeraltı Şehri</title>
-<meta name="viewport" content="width=device-width, initial-scale=1.0">
-
-<!-- SUPABASE -->
-<script src="https://unpkg.com/@supabase/supabase-js@2"></script>
-
+<title>PvP</title>
+<meta name="viewport" content="width=device-width, initial-scale=1">
 <style>
 body{
   background:#0b0b0b;
   color:#fff;
-  font-family:Arial;
-  padding:20px
+  font-family:Arial,Helvetica,sans-serif;
+  margin:0;
+  padding:15px;
+}
+.box{
+  background:#151515;
+  border-radius:10px;
+  padding:15px;
+  margin-bottom:15px;
 }
 button{
   width:100%;
-  padding:14px;
-  margin:8px 0;
-  background:#1a1a1a;
-  color:#fff;
+  padding:12px;
+  margin-top:8px;
   border:none;
-  border-radius:8px
+  border-radius:8px;
+  background:#222;
+  color:#fff;
+  font-size:16px;
 }
 button:hover{background:#333}
-.box{
-  background:#151515;
-  padding:15px;
-  border-radius:8px;
-  margin-bottom:15px
-}
-img{border-radius:8px}
+img{max-width:100%;border-radius:8px;margin:10px 0}
+.result{font-size:18px;text-align:center}
+.back{background:#500}
 </style>
 </head>
 
 <body>
 
-<h2>⚔️ PvP</h2>
+<div class="box" id="pvpBox">
+  <h2>⚔️ PvP</h2>
+  <div id="content">Yükleniyor...</div>
+</div>
 
-<div id="pvp" class="box">Yükleniyor...</div>
+<button class="back" onclick="history.back()">⬅ Ana Menü</button>
 
-<button onclick="history.back()">⬅ Ana Menü</button>
+<!-- SUPABASE -->
+<script src="https://unpkg.com/@supabase/supabase-js@2"></script>
 
 <script>
-/* ================= SUPABASE ================= */
-const sb = supabase.createClient(
-  "https://hwhscuyudwphnsipibpy.supabase.co",
-  "PUBLIC_ANON_KEY" // buraya anon key
-);
-
+// ================== AYARLAR ==================
+const SUPABASE_URL = "https://hwhscuyudwphnsipibpy.supabase.co";
+const SUPABASE_KEY = "sb_publishable_dItLcV8z83CvDWuR8nTabA_ImTHGETu";
 const TELEGRAM_ID = "162154220";
+// =============================================
+
+const sb = supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
 let startTime = 0;
 
-/* ================= LOAD PvP ================= */
+// PvP Sorusu Yükle
 async function loadPvP(){
-  const {data,error} = await sb
+  const { data, error } = await sb
     .from("pvp_questions")
     .select("*")
     .eq("active", true)
-    .order("id", {ascending:false})
+    .order("id", { ascending: false })
     .limit(1)
     .single();
 
-  if(error || !data){
-    document.getElementById("pvp").innerHTML =
-      "❌ PvP sorusu bulunamadı";
+  if(error){
+    document.getElementById("content").innerHTML =
+      "<div class='result'>❌ Soru yüklenemedi</div>";
     return;
   }
 
   startTime = Date.now();
 
-  document.getElementById("pvp").innerHTML = `
-    ${data.image_url ? `<img src="${data.image_url}" style="width:100%">` : ""}
+  document.getElementById("content").innerHTML = `
+    ${data.image_url ? `<img src="${data.image_url}">` : ``}
     <p><b>${data.question}</b></p>
-
     <button onclick="answerPvP(${data.id},'A')">A) ${data.option_a}</button>
     <button onclick="answerPvP(${data.id},'B')">B) ${data.option_b}</button>
     <button onclick="answerPvP(${data.id},'C')">C) ${data.option_c}</button>
@@ -82,29 +85,38 @@ async function loadPvP(){
   `;
 }
 
-/* ================= ANSWER ================= */
+// Cevap Ver
 async function answerPvP(questionId, answer){
-  const time = Math.floor((Date.now() - startTime)/1000);
+  const timeSpent = Math.floor((Date.now() - startTime) / 1000);
 
-  const {data,error} = await sb.rpc("pvp_answer",{
+  const { data, error } = await sb.rpc("pvp_answer", {
     p_telegram_id: TELEGRAM_ID,
     p_question_id: questionId,
     p_answer: answer,
-    p_time: time
+    p_time: timeSpent
   });
 
   if(error){
-    document.getElementById("pvp").innerHTML =
-      "❌ Hata: " + error.message;
+    document.getElementById("content").innerHTML =
+      "<div class='result'>❌ Sunucu hatası</div>";
     return;
   }
 
-  document.getElementById("pvp").innerHTML =
-    data.result === "win"
-    ? `🏆 Kazandın!<br>+${data.yton} YTon<br>+${data.xp} XP`
-    : `❌ Kaybettin!<br>${data.yton} YTon`;
+  if(data.result === "win"){
+    document.getElementById("content").innerHTML = `
+      <div class="result">🏆 Kazandın<br>
+      +${data.xp} XP<br>
+      +${data.yton} YTon</div>
+    `;
+  }else{
+    document.getElementById("content").innerHTML = `
+      <div class="result">❌ Kaybettin<br>
+      ${data.yton} YTon</div>
+    `;
+  }
 }
 
+// Başlat
 loadPvP();
 </script>
 
