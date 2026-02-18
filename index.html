@@ -33,6 +33,43 @@ small{opacity:.7}
 <div id="result" class="box hidden"></div>
 
 <script>
+ async function loadPvPQuestion(){
+ const {data}=await sb
+  .from("pvp_questions")
+  .select("*")
+  .order("random()")
+  .limit(1)
+  .single();
+
+ window.pvpStartTime = Date.now();
+
+ show(`
+  <b>⚔️ PvP</b>
+  <img src="${data.image_url}" style="width:100%;border-radius:8px">
+  <p>${data.question}</p>
+  <button onclick="answerPvP(${data.id},'A')">A) ${data.option_a}</button>
+  <button onclick="answerPvP(${data.id},'B')">B) ${data.option_b}</button>
+  <button onclick="answerPvP(${data.id},'C')">C) ${data.option_c}</button>
+  <button onclick="answerPvP(${data.id},'D')">D) ${data.option_d}</button>
+ `);
+}
+
+async function answerPvP(id,answer){
+ let time = Math.floor((Date.now()-window.pvpStartTime)/1000);
+
+ const {data}=await sb.rpc("pvp_answer",{
+  p_telegram_id:TELEGRAM_ID,
+  p_question_id:id,
+  p_answer:answer,
+  p_time:time
+ });
+
+ result(
+  data.result==="win"
+   ? `🏆 Kazandın! +${data.yton} YTon +${data.xp} XP`
+   : `❌ Kaybettin! ${data.yton} YTon`
+ );
+}
 /* ================= SUPABASE ================= */
 const sb = supabase.createClient(
  "https://hwhscuyudwphnsipibpy.supabase.co",
