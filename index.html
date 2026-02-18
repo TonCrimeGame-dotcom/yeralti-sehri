@@ -92,7 +92,30 @@ button:hover{
 </div>
 
 <script>
-function go(page){
+async function openPvP(){
+ showBox("result");
+
+ const {data} = await sb
+  .from("pvp_questions")
+  .select("*")
+  .eq("active",true)
+  .order("id",{ascending:false})
+  .limit(1)
+  .single();
+
+ window.pvpStart = Date.now();
+
+ document.getElementById("result").innerHTML = `
+  <b>⚔️ PvP</b>
+  ${data.image_url ? `<img src="${data.image_url}" style="width:100%">` : ``}
+  <p>${data.question}</p>
+  <button onclick="answerPvP(${data.id},'A')">A) ${data.option_a}</button>
+  <button onclick="answerPvP(${data.id},'B')">B) ${data.option_b}</button>
+  <button onclick="answerPvP(${data.id},'C')">C) ${data.option_c}</button>
+  <button onclick="answerPvP(${data.id},'D')">D) ${data.option_d}</button>
+ `;
+}
+ function go(page){
  window.location.href = page;
 }
 </script>
