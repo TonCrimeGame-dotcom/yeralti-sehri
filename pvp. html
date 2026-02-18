@@ -7,3 +7,12 @@
 <button>D</button>
 
 <button onclick="history.back()">⬅ Geri</button>
+<script>
+const sb = supabase.createClient(
+  "https://hwhscuyudwphnsipibpy.supabase.co",
+  "PUBLIC_ANON_KEY"
+);
+const TELEGRAM_ID = "162154220";
+"https://unpkg.com/@supabase/supabase-js@2"
+</script>
+
