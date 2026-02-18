@@ -90,7 +90,7 @@ function applyItem(id){
 /* ================= GÖREVLER ================= */
 async function loadMissions(){
  const {data}=await sb.from("missions").select("*").eq("active",true);
- if(!data||!data.length){ show("<b>Görev yok</b>"); return; }
+ if(!data||!data.length){ show("<b>💣 Görev yok</b>"); return; }
 
  let h="<b>💣 Görevler</b>";
  data.forEach(m=>{
@@ -154,10 +154,61 @@ async function answerPvP(c){
 
 /* ================= GECE HAYATI ================= */
 function openNightlife(){
- show(`<b>🌃 Gece Hayatı</b>
- <button onclick="show('Gece Kulübü aktif')">🍸 Gece Kulübü</button>
- <button onclick="show('Coffee Shop aktif')">☕ Coffee Shop</button>
- <button onclick="show('Genel Ev aktif')">💋 Genel Ev</button>`);
+ show(`
+ <b>🌃 Gece Hayatı</b>
+ <button onclick="openClub()">🍸 Gece Kulübü</button>
+ <button onclick="openCoffee()">☕ Coffee Shop</button>
+ <button onclick="openBrothel()">💋 Genel Ev</button>
+ `);
+}
+
+const drinks=["Black Velvet","Red Sin","Midnight Vodka","Neon Tequila","Golden Whiskey",
+"Shadow Rum","Blue Ice","Fire Gin","Poison Shot","Dark Angel","Night Queen","Cold Steel",
+"Bloody Moon","Urban Spirit","Viper Drink","Lost Soul","Electric Lime","Silent Shot",
+"Burning Kiss","Ice Devil","Broken Heart","Deep Blue","Noir Mix","High Voltage",
+"Smoke Glass","Neon Flame","Street King","Black Rose","After Dark","Last Call"];
+
+function openClub(){
+ let h="<b>🍸 Gece Kulübü</b>";
+ drinks.forEach((d,i)=>{
+  h+=`<button onclick="buy(${100+i})">${d} – Enerji +${2+i%3}</button>`;
+ });
+ h+=`<button onclick="openNightlife()">⬅ Geri</button>`;
+ show(h);
+}
+
+const drugs=["Mor Sis","Kırmızı Çizik","Pembe Toz","Gece Mantarı","Beyaz Hayal",
+"Neon Ot","Zihin Parçası","Kara Çamur","Mavi Kristal","Sokak Şekeri","Derin Kafa",
+"Gölgeli Hap","Kafesiz","Ateş Tozu","Rüya Yaprağı","Zombi Karışım","Yüksek Bulut",
+"Çarpık Mantık","Sıvı Gece","Alt Beyin","Parazit","Bulanık Hat","Frekans","Sersem",
+"Karanlık Çay","Zero X","Psiko Damla","Gece Çubuğu","Paranoya","Son Nefes"];
+
+function openCoffee(){
+ let h="<b>☕ Coffee Shop</b>";
+ drugs.forEach((d,i)=>{
+  h+=`<button onclick="buy(${200+i})">${d} – Başarı +${3+i%4}</button>`;
+ });
+ h+=`<button onclick="openNightlife()">⬅ Geri</button>`;
+ show(h);
+}
+
+const women=["Mia Khalite","Lana Rains","Sasha Noir","Lola Velvet","Kira Moon","Vera Blaze",
+"Nina Fox","Bella Storm","Ruby Kiss","Alina Frost","Eva Lux","Maya Sin","Daisy Night",
+"Lexa Flame","Rina Dark","Tina Glow","Katy Venom","Nora Silk","Ivy Black","Mila Rose",
+"Sienna Red","Aria Vice","Nika Poison","Lily Smoke","Zara Heat","Vixen Blue","Kora Night",
+"Luna Vice","Tara Sin","Jade Velvet","Elena Ice","Roxy Hell","Vera Pink","Nadia Lux","Mona Kiss"];
+const men=["Johnny Steel","Max Power","Leo Storm","Rick Blaze","Tony Dark","Axel Noir","Chris Venom","Duke Stone","Mark Inferno","Ivan Rush"];
+const twins=["Scarlet & Violet","Luna & Nova","Ivy & Lily","Rose & Ruby","Mia & Mila"];
+
+function openBrothel(){
+ let h="<b>💋 Genel Ev</b><b>Kadınlar</b>";
+ women.forEach((n,i)=>h+=`<button onclick="buy(${300+i})">${n}</button>`);
+ h+="<b>Erkekler</b>";
+ men.forEach((n,i)=>h+=`<button onclick="buy(${400+i})">${n}</button>`);
+ h+="<b>İkizler</b>";
+ twins.forEach((n,i)=>h+=`<button onclick="buy(${500+i})">${n}</button>`);
+ h+=`<button onclick="openNightlife()">⬅ Geri</button>`;
+ show(h);
 }
 
 /* ================= WEAPONS ================= */
