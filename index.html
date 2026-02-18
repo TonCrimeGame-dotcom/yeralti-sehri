@@ -2,15 +2,12 @@
 <html lang="tr">
 <head>
 <meta charset="UTF-8">
-<title>🔥 Yeraltı Şehri</title>
+<title>Yeraltı Şehri</title>
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<script src="https://unpkg.com/@supabase/supabase-js@2"></script>
-
 <style>
 body{background:#0b0b0b;color:#fff;font-family:Arial;padding:20px}
 h1{text-align:center}
 button{width:100%;padding:14px;margin:8px 0;background:#1a1a1a;color:#fff;border:none;border-radius:8px}
-button:hover{background:#333}
 .box{background:#151515;padding:15px;border-radius:8px;margin-bottom:15px}
 .hidden{display:none}
 small{opacity:.7}
@@ -21,7 +18,11 @@ small{opacity:.7}
 
 <h1>🔥 Yeraltı Şehri</h1>
 
-<div id="player" class="box">Yükleniyor...</div>
+<div id="playerInfo" class="box">
+Level: 1 | XP: 0<br>
+Enerji: 100 | YTon: 50<br>
+Başarı: %0 | Risk: 0
+</div>
 
 <button onclick="loadMissions()">💣 Görevler</button>
 <button onclick="openPvP()">⚔️ PvP</button>
@@ -29,302 +30,70 @@ small{opacity:.7}
 <button onclick="openWeapons()">🔫 Silah Kaçakçısı</button>
 <button onclick="hospital()">🏥 Hastane</button>
 
- <div id="playerInfo" class="box"></div>
-<div id="missions" class="box hidden"></div>
-<div id="result" class="box hidden"></div>
+<div id="content" class="box hidden"></div>
 
-
- <script>
-/* ================= GENEL UI ================= */
-function showBox(id){
- document.querySelectorAll(".box").forEach(b=>b.classList.add("hidden"));
- document.getElementById(id).classList.remove("hidden");
-}
-
-function setHTML(id, html){
- document.getElementById(id).innerHTML = html;
-}
-
-/* ================= PLAYER ================= */
-async function loadPlayer(){
- const {data,error}=await sb
-  .from("players")
-  .select("*")
-  .eq("telegram_id",TELEGRAM_ID)
-  .single();
-
- if(error){
-  console.error(error);
-  return;
- }
-
- setHTML("playerInfo",`
-  Level: ${data.level || 1} | XP: ${data.xp || 0}<br>
-  Enerji: ${data.energy || 0}<br>
-  YTon: ${data.yton || 0}
- `);
-}
-
-/* ================= GÖREVLER ================= */
-async function loadMissions(){
- showBox("missions");
-
- const {data,error}=await sb
-  .from("missions")
-  .select("*")
-  .eq("active",true);
-
- if(error){
-  setHTML("missions","Hata oluştu");
-  return;
- }
-
- if(!data.length){
-  setHTML("missions","Aktif görev yok");
-  return;
- }
-
- let html = "<b>💣 Görevler</b>";
-
- data.forEach(m=>{
-  html += `
-   <button onclick="doMission(${m.id})">
-    ${m.name} (Enerji ${m.energy_cost})
-   </button>
-  `;
- });
-
- setHTML("missions", html);
-}
-
-async function doMission(id){
- const {data,error}=await sb.rpc("do_mission",{
-  p_telegram_id: TELEGRAM_ID,
-  p_mission_id: id
- });
-
- if(error){
-  showResult("❌ Hata: "+error.message);
-  return;
- }
-
- showResult(`
-  ✅ Görev tamamlandı<br>
-  +${data.xp} XP<br>
-  +${data.yton} YTon
- `);
-}
-
-/* ================= PvP ================= */
-async function loadPvPQuestion(){
- showBox("result");
-
- const {data,error}=await sb
-  .from("pvp_questions")
-  .select("*")
-  .order("id",{ascending:false})
-  .limit(1)
-  .single();
-
- if(error){
-  setHTML("result","PvP sorusu yok");
-  return;
- }
-
- window.pvpStartTime = Date.now();
-
- setHTML("result",`
-  <b>⚔️ PvP</b>
-  <p>${data.question}</p>
-  <button onclick="answerPvP(${data.id},'A')">A) ${data.option_a}</button>
-  <button onclick="answerPvP(${data.id},'B')">B) ${data.option_b}</button>
-  <button onclick="answerPvP(${data.id},'C')">C) ${data.option_c}</button>
-  <button onclick="answerPvP(${data.id},'D')">D) ${data.option_d}</button>
- `);
-}
-
-async function answerPvP(id,answer){
- let time = Math.floor((Date.now()-window.pvpStartTime)/1000);
-
- const {data,error}=await sb.rpc("pvp_answer",{
-  p_telegram_id: TELEGRAM_ID,
-  p_question_id: id,
-  p_answer: answer,
-  p_time: time
- });
-
- if(error){
-  showResult("❌ "+error.message);
-  return;
- }
-
- showResult(
-  data.result==="win"
-   ? `🏆 Kazandın +${data.yton} YTon +${data.xp} XP`
-   : `❌ Kaybettin -${data.yton} YTon`
- );
-}
-
-/* ================= RESULT ================= */
-function showResult(html){
- setHTML("result", html);
- showBox("result");
- loadPlayer();
-}
-
-/* ================= INIT ================= */
-loadPlayer();
- async function loadPvPQuestion(){
- const {data}=await sb
-  .from("pvp_questions")
-  .select("*")
-  .order("random()")
-  .limit(1)
-  .single();
-
- window.pvpStartTime = Date.now();
-
- show(`
-  <b>⚔️ PvP</b>
-  <img src="${data.image_url}" style="width:100%;border-radius:8px">
-  <p>${data.question}</p>
-  <button onclick="answerPvP(${data.id},'A')">A) ${data.option_a}</button>
-  <button onclick="answerPvP(${data.id},'B')">B) ${data.option_b}</button>
-  <button onclick="answerPvP(${data.id},'C')">C) ${data.option_c}</button>
-  <button onclick="answerPvP(${data.id},'D')">D) ${data.option_d}</button>
- `);
-}
-
-async function answerPvP(id,answer){
- let time = Math.floor((Date.now()-window.pvpStartTime)/1000);
-
- const {data}=await sb.rpc("pvp_answer",{
-  p_telegram_id:TELEGRAM_ID,
-  p_question_id:id,
-  p_answer:answer,
-  p_time:time
- });
-
- result(
-  data.result==="win"
-   ? `🏆 Kazandın! +${data.yton} YTon +${data.xp} XP`
-   : `❌ Kaybettin! ${data.yton} YTon`
- );
-}
-/* ================= SUPABASE ================= */
-const sb = supabase.createClient(
- "https://hwhscuyudwphnsipibpy.supabase.co",
- "sb_publishable_dItLcV8z83CvDWuR8nTabA_ImTHGETu"
-);
-const TELEGRAM_ID = "162154220";
-
-/* ================= UI ================= */
+<script>
+/* ========== UI ========== */
 function show(html){
- const c=document.getElementById("content");
- c.innerHTML=html;
- c.classList.remove("hidden");
- document.getElementById("result").classList.add("hidden");
-}
-function result(msg){
- document.getElementById("result").innerHTML=msg;
- document.getElementById("result").classList.remove("hidden");
- loadPlayer();
+ const box=document.getElementById("content");
+ box.innerHTML=html;
+ box.classList.remove("hidden");
 }
 
-/* ================= PLAYER ================= */
-async function loadPlayer(){
- const {data}=await sb.from("players")
-  .select("*").eq("telegram_id",TELEGRAM_ID).single();
- if(!data)return;
-
- document.getElementById("player").innerHTML=`
- <b>Level:</b> ${data.level} |
- <b>XP:</b> ${data.xp}<br>
- <b>Enerji:</b> ${data.energy} |
- <b>YTon:</b> ${data.yton}
- `;
+/* ========== GÖREVLER ========== */
+function loadMissions(){
+ show(`
+ <b>💣 Görevler</b>
+ <button onclick="alert('Görev yapıldı')">Market Soygunu</button>
+ <button onclick="alert('Görev yapıldı')">Araba Çalma</button>
+ `);
 }
 
-/* ================= GÖREVLER ================= */
-async function loadMissions(){
- const {data}=await sb.from("missions")
-  .select("*").eq("active",true);
-
- if(!data||!data.length){
-  show("<b>💣 Aktif görev yok</b>");
-  return;
- }
-
- let h="<b>💣 Görevler</b>";
- data.forEach(m=>{
-  h+=`
-   <button onclick="doMission(${m.id})">
-    ${m.name} – Enerji ${m.energy_cost}
-   </button>
-   <small>XP ${m.xp_reward} | YTon ${m.yton_reward}</small>
-  `;
- });
- show(h);
-}
-
-async function doMission(id){
- const {data}=await sb.rpc("do_mission",{
-  p_telegram_id:TELEGRAM_ID,
-  p_mission_id:id
- });
- if(data?.error){ result("❌ "+data.error); }
- else if(data.success){ result("✅ Görev başarılı"); }
- else{ result("❌ Görev başarısız"); }
-}
-
-/* ================= PvP ================= */
+/* ========== PvP ========== */
 function openPvP(){
  show(`
  <b>⚔️ PvP</b>
- <button onclick="playPvP('easy',true)">Kolay – Doğru</button>
- <button onclick="playPvP('easy',false)">Kolay – Yanlış</button>
- <button onclick="playPvP('medium',true)">Orta – Doğru</button>
- <button onclick="playPvP('hard',false)">Zor – Yanlış</button>
- <small>Bu sürüm mantık testidir</small>
+ <p>Soru: Patron 1900 doğumlu, evlilik 1932, veliaht 1934</p>
+ <p>Kasa şifresi?</p>
+ <button onclick="pvpResult(true)">A) 32</button>
+ <button onclick="pvpResult(false)">B) 34</button>
+ <button onclick="pvpResult(false)">C) 66</button>
+ <button onclick="pvpResult(false)">D) 68</button>
  `);
 }
 
-async function playPvP(diff,correct){
- const {data}=await sb.rpc("pvp_play",{
-  p_telegram_id:TELEGRAM_ID,
-  p_difficulty:diff,
-  p_correct:correct
- });
- if(data.result==="win") result("🏆 PvP Kazanıldı");
- else result("❌ PvP Kaybedildi");
+function pvpResult(win){
+ show(
+  win
+   ? "🏆 Kazandın! +10 YTon"
+   : "❌ Kaybettin! -5 YTon"
+ );
 }
 
-/* ================= GECE HAYATI ================= */
+/* ========== GECE HAYATI ========== */
 function openNightlife(){
  show(`
  <b>🌃 Gece Hayatı</b>
- <p>Gece kulübü, coffee shop ve genel ev aktif.</p>
- <small>Ürünler bir sonraki adımda bağlanacak</small>
+ <button onclick="show('🍸 Gece Kulübü dolu')">Gece Kulübü</button>
+ <button onclick="show('☕ Coffee Shop dolu')">Coffee Shop</button>
+ <button onclick="show('💋 Genel Ev dolu')">Genel Ev</button>
  `);
 }
 
-/* ================= SİLAH KAÇAKÇISI ================= */
+/* ========== SİLAHLAR ========== */
 function openWeapons(){
  show(`
  <b>🔫 Silah Kaçakçısı</b>
- <p>Silahlar backend’e bağlı.</p>
- <small>Bir sonraki adımda satın alma eklenecek</small>
+ <button>Glock 19 – 50 YTon</button>
+ <button>AK-47 – 150 YTon</button>
+ <button>Sniper – 250 YTon</button>
  `);
 }
 
-/* ================= HASTANE ================= */
-async function hospital(){
- const {data}=await sb.rpc("hospital_heal",{p_telegram_id:TELEGRAM_ID});
- result("❤️ Enerji dolduruldu");
+/* ========== HASTANE ========== */
+function hospital(){
+ show("🏥 İyileştirildin. Enerji full!");
 }
-
-/* ================= INIT ================= */
-loadPlayer();
 </script>
 
 </body>
