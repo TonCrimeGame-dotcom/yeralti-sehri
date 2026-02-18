@@ -1,0 +1,9 @@
+<h2>⚔️ PvP</h2>
+
+<p>Soru burada</p>
+<button>A</button>
+<button>B</button>
+<button>C</button>
+<button>D</button>
+
+<button onclick="history.back()">⬅ Geri</button>
