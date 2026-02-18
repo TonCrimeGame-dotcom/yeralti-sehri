@@ -1,6 +1,156 @@
-<h2>💣 Görevler</h2>
+<!DOCTYPE html>
+<html lang="tr">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Görevler</title>
 
-<button>Bakkaldan Alkol Çal</button>
-<button>Araba Soygunu</button>
+<script src="https://unpkg.com/@supabase/supabase-js@2"></script>
 
-<button onclick="history.back()">⬅ Geri</button>
+<style>
+body{
+ margin:0;
+ background:#0b0b0b;
+ color:#fff;
+ font-family:Arial, sans-serif;
+ padding:20px;
+}
+h1{text-align:center}
+.box{
+ background:#151515;
+ padding:15px;
+ border-radius:12px;
+ margin-bottom:15px;
+}
+button{
+ width:100%;
+ padding:14px;
+ margin:8px 0;
+ background:#1a1a1a;
+ color:#fff;
+ border:none;
+ border-radius:10px;
+ font-size:15px;
+}
+button:hover{background:#333}
+.back{background:#300}
+small{opacity:.7}
+</style>
+</head>
+
+<body>
+
+<h1>💣 Görevler</h1>
+
+<div id="player" class="box">Yükleniyor...</div>
+<div id="missions" class="box">Görevler yükleniyor...</div>
+<div id="result" class="box" style="display:none"></div>
+
+<button class="back" onclick="history.back()">⬅ Ana Menü</button>
+
+<script>
+/* ================= SUPABASE ================= */
+const sb = supabase.createClient(
+ "https://hwhscuyudwphnsipibpy.supabase.co",
+ "sb_publishable_dItLcV8z83CvDWuR8nTabA_ImTHGETu"
+);
+
+const TELEGRAM_ID = "162154220";
+
+/* ================= PLAYER ================= */
+async function loadPlayer(){
+ const {data,error} = await sb
+  .from("players")
+  .select("*")
+  .eq("telegram_id",TELEGRAM_ID)
+  .single();
+
+ if(error){
+  document.getElementById("player").innerHTML="Oyuncu bulunamadı";
+  return;
+ }
+
+ document.getElementById("player").innerHTML = `
+  <b>Level:</b> ${data.level || 1}<br>
+  <b>XP:</b> ${data.xp || 0}<br>
+  <b>Enerji:</b> ${data.energy || 0}<br>
+  <b>YTon:</b> ${data.yton || 0}
+ `;
+}
+
+/* ================= GÖREVLER ================= */
+async function loadMissions(){
+ const box = document.getElementById("missions");
+
+ const {data,error} = await sb
+  .from("missions")
+  .select("*")
+  .eq("active",true);
+
+ if(error){
+  box.innerHTML = "Görevler yüklenemedi";
+  return;
+ }
+
+ if(!data.length){
+  box.innerHTML = "Aktif görev yok";
+  return;
+ }
+
+ let html = "<b>Aktif Görevler</b>";
+
+ data.forEach(m=>{
+  html += `
+   <button onclick="doMission(${m.id})">
+    ${m.name}<br>
+    <small>
+     Enerji: ${m.energy_cost} |
+     XP: +${m.xp_reward} |
+     YTon: +${m.yton_reward}
+    </small>
+   </button>
+  `;
+ });
+
+ box.innerHTML = html;
+}
+
+/* ================= GÖREV YAP ================= */
+async function doMission(id){
+ const resultBox = document.getElementById("result");
+ resultBox.style.display="block";
+ resultBox.innerHTML="Görev yapılıyor...";
+
+ const {data,error} = await sb.rpc("do_mission",{
+  p_telegram_id: TELEGRAM_ID,
+  p_mission_id: id
+ });
+
+ if(error){
+  resultBox.innerHTML = "❌ Hata: " + error.message;
+  return;
+ }
+
+ if(data.error){
+  resultBox.innerHTML = "❌ " + data.error;
+  return;
+ }
+
+ resultBox.innerHTML = `
+  ✅ Görev tamamlandı<br>
+  +${data.xp} XP<br>
+  +${data.yton} YTon<br>
+  Enerji -${data.energy_lost}
+ `;
+
+ loadPlayer();
+ loadMissions();
+}
+
+/* ================= INIT ================= */
+loadPlayer();
+loadMissions();
+</script>
+
+</body>
+</html>
